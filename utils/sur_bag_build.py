@@ -107,6 +107,8 @@ def get_bag(args,WSI_name, sur_time,censor,data_map):
                                 if  feats_mp.__contains__(idx) and TR+now_ps//args.magnification_scale <= top_row + now_ps and TC+now_ps//args.magnification_scale <= top_col + now_ps:
                                     for sz_idx in range(patch_size_list.__len__()):
                                         if patch_size_list[sz_idx] == now_ps:
+                                            edge_index_diff[sz_idx-1][1].append(feats_mp[idx])
+                                            edge_index_diff[sz_idx-1][0].append(feats_mp[i])
                                             edge_index_diff[sz_idx-1][0].append(feats_mp[idx])
                                             edge_index_diff[sz_idx-1][1].append(feats_mp[i])
             feats_list = np.array(feats_list)

@@ -13,7 +13,7 @@ class MaskAddGraphConv(MessagePassing):
 
     def forward(self, x, edge_index, mask_prob):
         self.mask_prob=mask_prob
-        return self.propagate(edge_index, x=self.lin(x))
+        return  self.lin(x+self.propagate(edge_index, x=x))
 
     def message(self, x_j):
         if random.random() >= self.mask_prob:
