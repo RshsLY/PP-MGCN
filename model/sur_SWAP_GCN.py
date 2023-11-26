@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from torch_geometric.nn import GATConv,GATv2Conv,SAGPooling,global_mean_pool,ASAPooling,global_max_pool,GCNConv,InstanceNorm,GINConv,GENConv,DeepGCNLayer
 from torch.nn import   LeakyReLU,LayerNorm
 
-from model.simple_conv import AddGraphConv
+from model.simple_conv import MaskAddGraphConv
 
 
 class MIL(nn.Module):
@@ -44,11 +44,11 @@ class MIL(nn.Module):
         #self.trans = torch.nn.ModuleList()
         for i in range (self.number_scale):
             for j in range(self.gcn_layer):
-                self.gnn_convs[i].append(DeepGCNLayer(AddGraphConv(in_classes, in_classes),
+                self.gnn_convs[i].append(DeepGCNLayer(MaskAddGraphConv(in_classes, in_classes),
                                          LayerNorm(in_classes),
                                          LeakyReLU(), block='plain', dropout=0.1,ckpt_grad=0))
 
-            self.gnn_convs_diff.append(DeepGCNLayer(AddGraphConv(in_classes, in_classes),
+            self.gnn_convs_diff.append(DeepGCNLayer(MaskAddGraphConv(in_classes, in_classes),
                                          LayerNorm(in_classes),
                                          LeakyReLU(), block='plain', dropout=0.1,ckpt_grad=0))
             self.att1.append(nn.Sequential(nn.Linear(in_classes*(self.gcn_layer+1), in_classes*(self.gcn_layer+1)), nn.Tanh(), nn.Dropout(drop_out_ratio),))
@@ -74,7 +74,7 @@ class MIL(nn.Module):
 
 
 
-    def forward(self, x,edge_index,edge_index_diff,feats_size_list):
+    def forward(self, x,edge_index,edge_index_diff,feats_size_list,mask_prob):
         # tim=time.time()
         x = self.l0(x)
         pssz = [0, 0, 0, 0,0]
@@ -85,7 +85,8 @@ class MIL(nn.Module):
                 for j in range(bag_count_sigle_layer):
                     pssz[i]=pssz[i]+feats_size_list[bag_count_idx]
                     bag_count_idx+=1
-                bag_count_sigle_layer=bag_count_sigle_layer*self.magnification_scale*self.magnification_scale
+                if i<=0:
+                    bag_count_sigle_layer=bag_count_sigle_layer*self.magnification_scale*self.magnification_scale
         else:
             for i in range(len(feats_size_list)):
                 pssz[i]=feats_size_list[i]
@@ -99,7 +100,7 @@ class MIL(nn.Module):
 
             x_.append(xx)
             for conv in self.gnn_convs[i]:
-                xx = conv(xx, edge_index[i])
+                xx = conv(xx, edge_index[i],mask_prob)
                 x_[-1] = torch.cat((x_[-1], xx), dim=-1)
             # xx = torch.unsqueeze(xx, 0)
             # xx = self.trans[i](xx)
@@ -111,7 +112,7 @@ class MIL(nn.Module):
                 x = torch.split(x, [rm_x_count, pssz[i] + pssz[i+1], all_x_count-rm_x_count-pssz[i]-pssz[i+1]], 0)
                 xx = x[1]
                 edge_index_diff[i] = edge_index_diff[i] - rm_x_count
-                xx = self.gnn_convs_diff[i](xx, edge_index_diff[i])
+                xx = self.gnn_convs_diff[i](xx, edge_index_diff[i],mask_prob)
                 x = torch.cat((x[0], xx, x[2]))
                 edge_index_diff[i] = edge_index_diff[i] + rm_x_count
                 rm_x_count=rm_x_count+pssz[i]

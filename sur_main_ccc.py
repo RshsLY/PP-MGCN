@@ -15,8 +15,6 @@ import utils.sur_bag_build
 import utils.sur_loss
 import  utils.sur_estimate
 
-import model.sur_SWAP_GCN_cmp as milcmp
-
 def data_process(WSI_name_list,sur_time_list,censor_list):
     list_data = []
     for i in range(len(WSI_name_list)):
@@ -54,12 +52,15 @@ def once_run(args,WSI_name_list,sur_time_list,censor_list,seed,run_num,data_map)
         train_index_split, val_index_split, test_index=get_one_fold_index(fold_num,args.number_kfold,index_all)
         best_assessment_val_one_fold = [0,-1]
         best_model_path_one_fold = ''
-        gpu_ids = tuple((args.gpu_index,))
-        os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(str(x) for x in gpu_ids)
-        model = mil.MIL(args)
+        model = mil.MIL(args,0)
         model = model.cuda()
-        model_cmp = milcmp.MIL(args)
-        model_cmp=model_cmp.cuda()
+
+        model_c1 = mil.MIL(args,0.33)
+        model_c1=model_c1.cuda()
+
+        model_c2 = mil.MIL(args, 0.66)
+        model_c2 = model_c2.cuda()
+
         optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         print('--------------------------------------------------------------------------------------------')
         print(model)
@@ -73,8 +74,9 @@ def once_run(args,WSI_name_list,sur_time_list,censor_list,seed,run_num,data_map)
         for epoch_num in range(args.epochs):
             if epoch_no_update == args.epochs_patience:
                 break
-            train_loss, train_assessment = train(args, model, model_cmp, train_index_split, WSI_name_list, sur_time_list, censor_list, optimizer,
-                                                    epoch_num + 1, fold_num+1, run_num, data_map)
+            train_loss, train_assessment = train(args, model, model_c1,model_c2, train_index_split, WSI_name_list,
+                                                 sur_time_list, censor_list, optimizer,
+                                                 epoch_num + 1, fold_num + 1, run_num, data_map)
             val_loss, val_assessment = val_and_test(args, model, val_index_split, WSI_name_list, sur_time_list, censor_list,
                                                     epoch_num + 1, fold_num+1, run_num, data_map)
             print("   epoch：{:2d}  train_loss：{:.4f}   val_loss：{:.4f} ".format(epoch_num+1, train_loss, val_loss),
@@ -96,7 +98,7 @@ def once_run(args,WSI_name_list,sur_time_list,censor_list,seed,run_num,data_map)
             else :
                 epoch_no_update=epoch_no_update+1
 
-        model_test = mil.MIL(args)
+        model_test = mil.MIL(args,0)
         model_test = model_test.cuda()
         model_test.load_state_dict(torch.load(best_model_path_one_fold))
         model_test.eval()
@@ -114,9 +116,10 @@ def once_run(args,WSI_name_list,sur_time_list,censor_list,seed,run_num,data_map)
     print(' run:', run_num,"mean c-index:", np.mean(all_fold_test_assessment))
     return np.mean(all_fold_test_assessment)
 
-def train(args, model, model_cmp, index_split, WSI_name_list,sur_time_list,censor_list, optimizer, epoch_num, fold_num,run_num,data_map):
+def train(args, model, model_c1,model_c2, index_split, WSI_name_list,sur_time_list,censor_list, optimizer, epoch_num, fold_num,run_num,data_map):
     model.train()
-    model_cmp.train()
+    model_c1.train()
+    model_c2.train()
     random.shuffle(index_split)
     total_loss = 0
     Y_list=[]
@@ -128,7 +131,8 @@ def train(args, model, model_cmp, index_split, WSI_name_list,sur_time_list,censo
                         utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx],censor_list[idx], data_map)
             YY=0.0
             prediction_list,at_=model(feats_list,edge_index,edge_index_diff,feats_size_list)
-            prediction_list_cmp,at_cpm=model_cmp(feats_list,edge_index,edge_index_diff,feats_size_list)
+            prediction_list_c1,at_c1=model_c1(feats_list,edge_index,edge_index_diff,feats_size_list)
+            prediction_list_c2,at_c2=model_c2(feats_list,edge_index,edge_index_diff,feats_size_list)
             loss=torch.zeros((1)).cuda()
             bag_count=len(prediction_list)
             for ic in range(len(prediction_list)):
@@ -140,7 +144,7 @@ def train(args, model, model_cmp, index_split, WSI_name_list,sur_time_list,censo
                     Y=Y+S
                 Y=Y/len(prediction_list[ic][0])
                 YY=YY+Y/bag_count
-                loss = loss+utils.sur_loss.sur_loss_cmp(prediction_list[ic],prediction_list_cmp[ic],sur_time,censor)/bag_count
+                loss = loss+utils.sur_loss.sur_loss_ccc(prediction_list[ic],prediction_list_c1[ic],prediction_list_c2[ic],sur_time,censor)/bag_count
             Y_list.append(YY)
             loss_cpu = loss.item()
             total_loss += (loss_cpu)
@@ -330,8 +334,8 @@ def val_and_test(args, model, index_split, WSI_name_list,sur_time_list,censor_li
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--patch_size", type=int,            default=512,               help="patch_size to use")
-    parser.add_argument('--gpu_index', type=int,             default=7,                 help='GPU ID(s)')
-    parser.add_argument("--dataset", type=str,               default="TCGA_UCEC",       help="Database to use[TCGA_LUAD,TCGA_LUSC,TCGA_UCEC,TCGA_BRCA,TCGA_GBMLGG,TCGA_BLCA]")
+    parser.add_argument('--gpu_index', type=int,             default=4,                 help='GPU ID(s)')
+    parser.add_argument("--dataset", type=str,               default="TCGA_LUAD",       help="Database to use[TCGA_LUAD,TCGA_LUSC,TCGA_UCEC,TCGA_BRCA,TCGA_GBMLGG,TCGA_BLCA]")
     parser.add_argument("--model", type=str,                 default="sur_SWAP_GCN",    help="Model to use[sur_MIL_mean,sur_MIL_max,sur_ABMIL,sur_Patch_GCN,sur_DSMIL,sur_TransMIL,sur_H2_MIL,sur_SWAP_GCN]")
     parser.add_argument("--in_classes", type=int,            default=1024,              help="Feature size")
     parser.add_argument("--out_classes", type=int,           default=30,                help="Survival vector")
@@ -360,8 +364,8 @@ if __name__ == '__main__':
     args.time_stamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S.%f')
     gpu_ids = tuple((args.gpu_index,))
     os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(str(x) for x in gpu_ids)
-    sys.stdout = utils.sys_utils.Logger(sys.stdout,model_name=args.model+args.dataset)
-    sys.stderr = utils.sys_utils.Logger(sys.stderr,model_name=args.model+args.dataset)
+    sys.stdout = utils.sys_utils.Logger(sys.stdout,model_name=args.model+args.dataset+"_ccc")
+    sys.stderr = utils.sys_utils.Logger(sys.stderr,model_name=args.model+args.dataset+"_ccc")
     assert args.model in ["sur_MIL_mean","sur_MIL_max","sur_ABMIL","sur_Patch_GCN","sur_DSMIL","sur_TransMIL","sur_H2_MIL","sur_SWAP_GCN","sur_MIL_Trans"]
     print("dataset:", args.dataset, "  model:", args.model, "  task:", args.task, "  gpu:", gpu_ids, "  seed:", args.divide_seed,
           "  lr:", args.lr, "  batch_size:", args.batch_size, "  patch_size:", args.patch_size,"   number_scale:",args.number_scale,

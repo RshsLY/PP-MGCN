@@ -21,7 +21,7 @@ def get_bag(args,WSI_name, sur_time,censor,data_map):
         csv_path = os.path.join('TCGA_BLCA_Feats', WSI_name + '_' + str(args.patch_size) + '_0_0' + '.csv')
     if args.dataset == 'TCGA_GBMLGG':
         csv_path = os.path.join('TCGA_GBMLGG_Feats', WSI_name + '_' + str(args.patch_size) + '_0_0' + '.csv')
-    if args.model=='sur_SWAP_GCN':
+    if args.model=='sur_SWAP_GCN' or args.model=='sur_SWAP_GCN_CL':
         if data_map.__contains__(WSI_name)==False:
             #tim=time.time()
             feats_mp = {}
@@ -51,8 +51,10 @@ def get_bag(args,WSI_name, sur_time,censor,data_map):
             for now_ps in patch_size_list:
                 if now_ps==min_ps:
                     continue
-                for start_row in range(-now_ps + min_ps, 1, min_ps):
-                    for start_col in range(-now_ps + min_ps, 1, min_ps):
+                for start_row in range(-now_ps + now_ps//args.magnification_scale, 1, now_ps//args.magnification_scale):
+                    for start_col in range(-now_ps + now_ps//args.magnification_scale, 1, now_ps//args.magnification_scale):
+                # for start_row in range(-now_ps + min_ps, 1, min_ps):
+                #     for start_col in range(-now_ps + min_ps, 1, min_ps):
                         if args.using_Swin == 0  and (start_col!=0 or start_row!=0):
                             continue
                         feats_count_now=0
@@ -184,7 +186,7 @@ def get_bag(args,WSI_name, sur_time,censor,data_map):
         edge_index = copy.deepcopy(data_map[WSI_name]["edge_index"]).cuda()
         return feats_list, sur_time,censor,edge_index
 
-    elif args.model=='sur_H2_MIL':
+    elif args.model=='sur_H2_MIL' or args.model == 'sur_HIGT':
         if data_map.__contains__(WSI_name) == False:
             # tim=time.time()
             feats_mp = {}

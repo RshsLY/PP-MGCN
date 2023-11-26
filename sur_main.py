@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 
 import torch
 import random
@@ -54,9 +53,6 @@ def once_run(args,WSI_name_list,sur_time_list,censor_list,seed,run_num,data_map)
         best_model_path_one_fold = ''
         model = mil.MIL(args)
         model = model.cuda()
-
-        model_cmp = mil.MIL(args)
-        model_cmp=model_cmp.cuda()
         optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         print('--------------------------------------------------------------------------------------------')
         print(model)
@@ -123,7 +119,7 @@ def train(args, model, index_split, WSI_name_list,sur_time_list,censor_list, opt
             feats_list,sur_time,censor,edge_index,edge_index_diff,feats_size_list,feats_info= \
                         utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx],censor_list[idx], data_map)
             YY=0.0
-            prediction_list,at_=model(feats_list,edge_index,edge_index_diff,feats_size_list)
+            prediction_list,at_=model(feats_list,edge_index,edge_index_diff,feats_size_list,0)
             loss=torch.zeros((1)).cuda()
             bag_count=len(prediction_list)
             for prediction in prediction_list:
@@ -141,7 +137,33 @@ def train(args, model, index_split, WSI_name_list,sur_time_list,censor_list, opt
             loss.backward()
             ass_sur_time_list.append(sur_time)
             ass_censor_list.append(censor)
-        elif args.model=='sur_H2_MIL':
+        elif args.model == 'sur_SWAP_GCN_CL':
+            feats_list, sur_time, censor, edge_index, edge_index_diff, feats_size_list, feats_info = \
+                utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx], censor_list[idx], data_map)
+            YY = 0.0
+            prediction_list, at_ = model(feats_list, edge_index, edge_index_diff, feats_size_list, 0)
+            prediction_list_cl, at_cl = model(feats_list, edge_index, edge_index_diff, feats_size_list, args.mask_prob)
+            loss = torch.zeros((1)).cuda()
+            bag_count = len(prediction_list)
+
+            for idd in range(0,len(prediction_list)):
+                prediction=prediction_list[idd]
+                prediction_cl=prediction_list_cl[idd]
+                S = 1.0
+                Y = 0.0
+                for ii in prediction[0]:
+                    S = S * ii
+                    Y = Y + S
+                Y = Y / len(prediction[0])
+                YY = YY + Y / bag_count
+                loss = loss + utils.sur_loss.sur_loss_cc(prediction, prediction_cl, sur_time, censor) / bag_count
+            Y_list.append(YY)
+            loss_cpu = loss.item()
+            total_loss += (loss_cpu)
+            loss.backward()
+            ass_sur_time_list.append(sur_time)
+            ass_censor_list.append(censor)
+        elif args.model=='sur_H2_MIL' or args.model == 'sur_HIGT':
             data= utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx],censor_list[idx], data_map)
             prediction = model(data)
             S = 1.0
@@ -208,7 +230,7 @@ def train(args, model, index_split, WSI_name_list,sur_time_list,censor_list, opt
             ass_censor_list.append(censor)
         if i % (len(index_split) // 20) == 0:  # out 10 case
             print("    run/fold/epoch：{:d}/{:d}/{:d}  {:d}/{:d}   now_loss：{:.4f}   censor：{:.0f}   sur_time：{:.0f}   Y：{:.4f}    predict：{:.4f}  ".format(run_num,
-                    fold_num, epoch_num, i + 1, len(index_split), loss_cpu, censor_list[idx],sur_time_list[idx], Y.item(),prediction[0][int(sur_time_list[idx])].item()), feats_list.shape
+                    fold_num, epoch_num, i + 1, len(index_split), loss_cpu, censor_list[idx],sur_time_list[idx], Y.item(),prediction[0][int(sur_time_list[idx])].item())
                   )
             for ii in prediction[0]:
                 print(round(ii.item(), 2),end=' ')
@@ -233,7 +255,7 @@ def val_and_test(args, model, index_split, WSI_name_list,sur_time_list,censor_li
                 feats_list, sur_time, censor, edge_index, edge_index_diff, feats_size_list,feats_info= \
                     utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx], censor_list[idx], data_map)
                 YY = 0.0
-                prediction_list,at_ = model(feats_list, edge_index, edge_index_diff, feats_size_list)
+                prediction_list,at_ = model(feats_list, edge_index, edge_index_diff, feats_size_list,0)
                 loss = torch.zeros((1)).cuda()
                 bag_count = len(prediction_list)
                 for prediction in prediction_list:
@@ -250,7 +272,32 @@ def val_and_test(args, model, index_split, WSI_name_list,sur_time_list,censor_li
                 total_loss += (loss_cpu)
                 ass_sur_time_list.append(sur_time)
                 ass_censor_list.append(censor)
-            elif args.model == 'sur_H2_MIL':
+            elif args.model == 'sur_SWAP_GCN_CL':
+                feats_list, sur_time, censor, edge_index, edge_index_diff, feats_size_list, feats_info = \
+                    utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx], censor_list[idx],
+                                                data_map)
+                YY = 0.0
+                prediction_list, at_=model(feats_list, edge_index, edge_index_diff, feats_size_list,0)
+                prediction_list_cl, at_cl = model(feats_list, edge_index, edge_index_diff, feats_size_list,args.mask_prob)
+                loss = torch.zeros((1)).cuda()
+                bag_count = len(prediction_list)
+                for idd in range(0, len(prediction_list)):
+                    prediction = prediction_list[idd]
+                    prediction_cl = prediction_list_cl[idd]
+                    S = 1.0
+                    Y = 0.0
+                    for ii in prediction[0]:
+                        S = S * ii
+                        Y = Y + S
+                    Y = Y / len(prediction[0])
+                    YY = YY + Y / bag_count
+                    loss = loss + utils.sur_loss.sur_loss_cc(prediction, prediction_cl, sur_time, censor) / bag_count
+                Y_list.append(YY)
+                loss_cpu = loss.item()
+                total_loss += (loss_cpu)
+                ass_sur_time_list.append(sur_time)
+                ass_censor_list.append(censor)
+            elif args.model == 'sur_H2_MIL' or args.model == 'sur_HIGT':
                 data = utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx], censor_list[idx], data_map)
                 prediction = model(data)
                 S = 1.0
@@ -324,13 +371,14 @@ def val_and_test(args, model, index_split, WSI_name_list,sur_time_list,censor_li
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--patch_size", type=int,            default=512,               help="patch_size to use")
-    parser.add_argument('--gpu_index', type=int,             default=1,                 help='GPU ID(s)')
-    parser.add_argument("--dataset", type=str,               default="TCGA_LUAD",       help="Database to use[TCGA_LUAD,TCGA_LUSC,TCGA_UCEC,TCGA_BRCA,TCGA_GBMLGG,TCGA_BLCA]")
-    parser.add_argument("--model", type=str,                 default="sur_SWAP_GCN",    help="Model to use[sur_MIL_mean,sur_MIL_max,sur_ABMIL,sur_Patch_GCN,sur_DSMIL,sur_TransMIL,sur_H2_MIL,sur_SWAP_GCN]")
+    parser.add_argument('--gpu_index', type=int,             default=5,                 help='GPU ID(s)')
+    parser.add_argument("--dataset", type=str,               default="TCGA_UCEC",       help="Database to use[TCGA_LUAD,TCGA_LUSC,TCGA_UCEC,TCGA_BRCA,TCGA_GBMLGG,TCGA_BLCA]")
+    parser.add_argument("--model", type=str,                 default="sur_HIGT",    help="Model to use[sur_MIL_mean,sur_MIL_max,sur_ABMIL,sur_Patch_GCN,sur_DSMIL,sur_TransMIL,sur_H2_MIL,sur_HIGT,sur_SWAP_GCN]")
     parser.add_argument("--in_classes", type=int,            default=1024,              help="Feature size")
     parser.add_argument("--out_classes", type=int,           default=30,                help="Survival vector")
     #------SWAP_GCN
-    parser.add_argument("--magnification_scale", type=int,   default=2,                 help="")
+    parser.add_argument("--mask_prob", type=float,           default=0.6,               help="")
+    parser.add_argument("--magnification_scale", type=int,   default=3,                 help="")
     parser.add_argument("--number_scale", type=int,          default=3,                 help="[1,4]")
     parser.add_argument("--using_Swin",type=int,             default=1,                 help="[0,1]")
     parser.add_argument("--gcn_layer", type=int,             default=1,                 help="Number of graph convs in each scale")
@@ -343,7 +391,7 @@ if __name__ == '__main__':
     parser.add_argument("--epochs", type=int,                default=200,               help="")
     parser.add_argument("--epochs_patience", type=int,       default=32,                help="")
     parser.add_argument("--epochs_warm", type=int,           default=8,                 help="")
-    parser.add_argument("--drop_out_ratio", type=float,      default=0.25,              help="")
+    parser.add_argument("--drop_out_ratio", type=float,      default=0.2,              help="")
     parser.add_argument("--lr", type=float,                  default=0.00001,           help="Learning rate")
     parser.add_argument("--weight_decay", type=float,        default=0.000001,          help="")
     # ------------------
@@ -356,7 +404,7 @@ if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(str(x) for x in gpu_ids)
     sys.stdout = utils.sys_utils.Logger(sys.stdout,model_name=args.model+args.dataset)
     sys.stderr = utils.sys_utils.Logger(sys.stderr,model_name=args.model+args.dataset)
-    assert args.model in ["sur_MIL_mean","sur_MIL_max","sur_ABMIL","sur_Patch_GCN","sur_DSMIL","sur_TransMIL","sur_H2_MIL","sur_SWAP_GCN","sur_MIL_Trans"]
+    assert args.model in ["sur_MIL_mean","sur_MIL_max","sur_ABMIL","sur_Patch_GCN","sur_DSMIL","sur_TransMIL","sur_H2_MIL","sur_HIGT","sur_SWAP_GCN","sur_SWAP_GCN_CL","sur_MIL_Trans"]
     print("dataset:", args.dataset, "  model:", args.model, "  task:", args.task, "  gpu:", gpu_ids, "  seed:", args.divide_seed,
           "  lr:", args.lr, "  batch_size:", args.batch_size, "  patch_size:", args.patch_size,"   number_scale:",args.number_scale,
           "  using_Swin:",args.using_Swin,"   gcn_layer:",args.gcn_layer,"   magnification_scale", args.magnification_scale,"    out_classes:",args.out_classes)
@@ -396,10 +444,21 @@ if __name__ == '__main__':
         with open('model/sur_H2_MIL.py', 'r') as viewFile:
             data = viewFile.read()
         print(data)
+    elif args.model == 'sur_HIGT':
+        import model.sur_HIGT as mil
+        with open('model/sur_HIGT.py', 'r') as viewFile:
+            data = viewFile.read()
+        print(data)
     elif args.model == 'sur_SWAP_GCN':
         import model.sur_SWAP_GCN as mil
         with open('model/sur_SWAP_GCN.py', 'r') as viewFile:
             data=viewFile.read()
+        print(data)
+    elif args.model == 'sur_SWAP_GCN_CL':
+        import ahis_file.sur_SWAP_GCN_CL as mil
+
+        with open('ahis_file/sur_SWAP_GCN_CL.py', 'r') as viewFile:
+            data = viewFile.read()
         print(data)
     elif args.model == 'sur_MIL_Trans'  :
         import model.sur_MIL_Trans as mil
@@ -440,7 +499,7 @@ if __name__ == '__main__':
     print("all run c-index:",all_c_index,"  mean:",np.mean(all_c_index))
     print("dataset:", args.dataset, "  model:", args.model, "  task:", args.task, "  gpu:", gpu_ids, "  seed:", args.divide_seed,
           "  lr:", args.lr, "  batch_size:", args.batch_size, "  patch_size:", args.patch_size, "   number_scale:", args.number_scale,
-          "  using_Swin:", args.using_Swin, "   gcn_layer", args.gcn_layer,"   magnification_scale", args.magnification_scale)
+          "  using_Swin:", args.using_Swin, "   gcn_layer", args.gcn_layer,"   magnification_scale", args.magnification_scale," mask_prob:" ,args.mask_prob)
 
 
-    print("time:",datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S.%f'))
+
