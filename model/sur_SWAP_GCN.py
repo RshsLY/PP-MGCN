@@ -100,7 +100,7 @@ class MIL(nn.Module):
 
             x_.append(xx)
             for conv in self.gnn_convs[i]:
-                xx = conv(xx, edge_index[i],0)
+                xx = conv(xx, edge_index[i],mask_prob)
                 x_[-1] = torch.cat((x_[-1], xx), dim=-1)
             # xx = torch.unsqueeze(xx, 0)
             # xx = self.trans[i](xx)
