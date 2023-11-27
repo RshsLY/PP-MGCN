@@ -207,7 +207,7 @@ class H2GCN(nn.Module):
     def forward(self, data):
         x, edge_index, node_type, tree, x_y_index = data['x'], data["edge_index_tree_8nb"], data["node_type"], data[
             "node_tree"], data["x_y_index"]
-        # x_y_index = x_y_index * 2 - 1
+        x_y_index = x_y_index * 2 - 1
         x = self.norm(x)
 
         for i, _ in enumerate(self.pool_ratio):

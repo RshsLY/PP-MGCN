@@ -13,12 +13,15 @@ class MaskAddGraphConv(MessagePassing):
 
     def forward(self, x, edge_index, mask_prob):
         self.mask_prob=mask_prob
-        return  self.lin(x+self.propagate(edge_index, x=x))
+        return self.lin(x + self.propagate(edge_index, x=x))
 
     def message(self, x_j):
-        if random.random() >= self.mask_prob:
-            return x_j
-        return torch.zeros_like(x_j).cuda()
+        mask_=torch.rand(x_j.shape).cuda()
+        ones_=torch.ones(x_j.shape).cuda()
+        zeros_=torch.zeros(x_j.shape).cuda()
+        mask_=torch.where(mask_>self.mask_prob,ones_,zeros_)
+        x_j=mask_*x_j
+        return x_j
 
     def update(self, aggr_out):
         return aggr_out

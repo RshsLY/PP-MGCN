@@ -108,11 +108,11 @@ class MIL(nn.Module):
             x = torch.cat((x[0], xx, x[2]))
             edge_index[i] = edge_index[i] + rm_x_count
 
-            if i != (self.number_scale-1):
-                x = torch.split(x, [rm_x_count, pssz[i] + pssz[i+1], all_x_count-rm_x_count-pssz[i]-pssz[i+1]], 0)
+            if i != (self.number_scale - 1):
+                x = torch.split(x,[rm_x_count, pssz[i] + pssz[i + 1], all_x_count - rm_x_count - pssz[i] - pssz[i + 1]],0)
                 xx = x[1]
                 edge_index_diff[i] = edge_index_diff[i] - rm_x_count
-                xx = self.gnn_convs_diff[i](xx, edge_index_diff[i],mask_prob)
+                xx = self.gnn_convs_diff[i](xx, edge_index_diff[i], mask_prob)
                 x = torch.cat((x[0], xx, x[2]))
                 edge_index_diff[i] = edge_index_diff[i] + rm_x_count
                 rm_x_count=rm_x_count+pssz[i]
