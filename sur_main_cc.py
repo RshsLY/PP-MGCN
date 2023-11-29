@@ -52,6 +52,7 @@ def once_run(args,WSI_name_list,sur_time_list,censor_list,seed,run_num,data_map)
         train_index_split, val_index_split, test_index=get_one_fold_index(fold_num,args.number_kfold,index_all)
         best_assessment_val_one_fold = [0,-1]
         best_model_path_one_fold = ''
+        best_model_path_one_fold_cmp=''
         model = mil.MIL(args)
         model = model.cuda()
 
@@ -84,11 +85,15 @@ def once_run(args,WSI_name_list,sur_time_list,censor_list,seed,run_num,data_map)
                 best_assessment_val_one_fold = [val_assessment,epoch_num]
                 if best_model_path_one_fold!='' and os.path.exists(best_model_path_one_fold):
                     os.remove(best_model_path_one_fold)
+                    os.remove(best_model_path_one_fold_cmp)
                     print("   delete last model")
                 best_model_path_one_fold = os.path.join(args.model_save_path,args.dataset + '_' + args.task + '_' + args.model +
                                                         '_' + str(fold_num+1) +'_'+args.time_stamp+ '.pth')
+                best_model_path_one_fold_cmp=os.path.join(args.model_save_path,args.dataset + '_' + args.task + '_' + args.model +
+                                                        '_' + str(fold_num+1) +'_'+args.time_stamp+ "_CMP"+'.pth')
                 os.makedirs(args.model_save_path, exist_ok=True)
                 torch.save(model.state_dict(), best_model_path_one_fold)
+                torch.save(model_cmp.state_dict(), best_model_path_one_fold_cmp)
                 print("   model saved in", best_model_path_one_fold)
                 epoch_no_update=0
             else :
@@ -105,6 +110,15 @@ def once_run(args,WSI_name_list,sur_time_list,censor_list,seed,run_num,data_map)
         print('  test_loss:', test_loss)
         print('  test assessment:', test_assessment)
         print('  best_val_assessment:', best_assessment_val_one_fold)
+
+        model_test_cmp = mil.MIL(args)
+        model_test_cmp = model_test_cmp.cuda()
+        model_test_cmp.load_state_dict(torch.load(best_model_path_one_fold_cmp))
+        model_test_cmp.eval()
+        test_loss_cmp, test_assessment_cmp = val_and_test(args, model_test_cmp, test_index, WSI_name_list, sur_time_list,
+                                                  censor_list, -1, fold_num + 1, run_num, data_map)
+        print('  test_loss_cmp:', test_loss_cmp)
+        print('  test assessment_cmp:', test_assessment_cmp)
 
     print(' run:', run_num,' All fold test loss:', all_fold_test_loss, ',mean:', np.mean(all_fold_test_loss))
     print(' run:', run_num,' All fold best val assessment:', all_fold_best_val_assessment)
@@ -328,7 +342,7 @@ def val_and_test(args, model, index_split, WSI_name_list,sur_time_list,censor_li
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--patch_size", type=int,            default=512,               help="patch_size to use")
-    parser.add_argument('--gpu_index', type=int,             default=7,                 help='GPU ID(s)')
+    parser.add_argument('--gpu_index', type=int,             default=1,                 help='GPU ID(s)')
     parser.add_argument("--dataset", type=str,               default="TCGA_BLCA",       help="Database to use[TCGA_LUAD,TCGA_LUSC,TCGA_UCEC,TCGA_BRCA,TCGA_GBMLGG,TCGA_BLCA]")
     parser.add_argument("--model", type=str,                 default="sur_SWAP_GCN",    help="Model to use[sur_MIL_mean,sur_MIL_max,sur_ABMIL,sur_Patch_GCN,sur_DSMIL,sur_TransMIL,sur_H2_MIL,sur_SWAP_GCN]")
     parser.add_argument("--in_classes", type=int,            default=1024,              help="Feature size")
@@ -338,7 +352,7 @@ if __name__ == '__main__':
     parser.add_argument("--number_scale", type=int,          default=3,                 help="[1,4]")
     parser.add_argument("--using_Swin",type=int,             default=1,                 help="[0,1]")
     parser.add_argument("--gcn_layer", type=int,             default=1,                 help="Number of graph convs in each scale")
-    parser.add_argument("--mask_prob", type=float,           default=0.6,              help="")
+    parser.add_argument("--mask_prob", type=float,           default=0,              help="")
     #-----SWAP_GCN
     parser.add_argument("--model_save_path", type=str,       default="saved_model",     help="path for save model")
     parser.add_argument("--task", type=str,                  default="survival",        help="Task of classification[survival]")
