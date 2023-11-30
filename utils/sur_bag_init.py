@@ -1,9 +1,8 @@
-import openslide
+
 import pandas as pd
 import glob
 import os
 
-from openslide import open_slide
 
 
 def sur_get_tcga_luad_bags(args):
