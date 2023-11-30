@@ -116,51 +116,21 @@ def train(args, model, index_split, WSI_name_list,sur_time_list,censor_list, opt
     ass_censor_list=[]
     for (i, idx) in enumerate(index_split):
         if args.model == 'sur_SWAP_GCN':
-            feats_list,sur_time,censor,edge_index,edge_index_diff,feats_size_list,feats_info= \
-                        utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx],censor_list[idx], data_map)
-            YY=0.0
-            prediction_list,at_=model(feats_list,edge_index,edge_index_diff,feats_size_list,0)
-            loss=torch.zeros((1)).cuda()
-            bag_count=len(prediction_list)
-            for prediction in prediction_list:
-                S=1.0
-                Y=0.0
-                for ii in prediction[0]:
-                    S=S*ii
-                    Y=Y+S
-                Y=Y/len(prediction[0])
-                YY=YY+Y/bag_count
-                loss = loss+utils.sur_loss.sur_loss(prediction,sur_time,censor)/bag_count
-            Y_list.append(YY)
-            loss_cpu = loss.item()
-            total_loss += (loss_cpu)
-            loss.backward()
-            ass_sur_time_list.append(sur_time)
-            ass_censor_list.append(censor)
-        elif args.model == 'sur_SWAP_GCN_CL':
             feats_list, sur_time, censor, edge_index, edge_index_diff, feats_size_list, feats_info = \
                 utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx], censor_list[idx], data_map)
-            YY = 0.0
-            prediction_list, at_ = model(feats_list, edge_index, edge_index_diff, feats_size_list, 0)
-            prediction_list_cl, at_cl = model(feats_list, edge_index, edge_index_diff, feats_size_list, args.mask_prob)
-            loss = torch.zeros((1)).cuda()
-            bag_count = len(prediction_list)
+            prediction, at_ = model(feats_list, edge_index, edge_index_diff, feats_size_list, 0)
 
-            for idd in range(0,len(prediction_list)):
-                prediction=prediction_list[idd]
-                prediction_cl=prediction_list_cl[idd]
-                S = 1.0
-                Y = 0.0
-                for ii in prediction[0]:
-                    S = S * ii
-                    Y = Y + S
-                Y = Y / len(prediction[0])
-                YY = YY + Y / bag_count
-                loss = loss + utils.sur_loss.sur_loss_cc(prediction, prediction_cl, sur_time, censor) / bag_count
-            Y_list.append(YY)
+            S = 1.0
+            Y = 0.0
+            for ii in prediction[0]:
+                S = S * ii
+                Y = Y + S
+            Y = Y / len(prediction[0])
+            loss = utils.sur_loss.sur_loss(prediction, sur_time, censor)
+            loss.backward()
             loss_cpu = loss.item()
             total_loss += (loss_cpu)
-            loss.backward()
+            Y_list.append(Y)
             ass_sur_time_list.append(sur_time)
             ass_censor_list.append(censor)
         elif args.model=='sur_H2_MIL' or args.model == 'sur_HIGT':
@@ -254,47 +224,18 @@ def val_and_test(args, model, index_split, WSI_name_list,sur_time_list,censor_li
             if args.model == 'sur_SWAP_GCN':
                 feats_list, sur_time, censor, edge_index, edge_index_diff, feats_size_list,feats_info= \
                     utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx], censor_list[idx], data_map)
-                YY = 0.0
-                prediction_list,at_ = model(feats_list, edge_index, edge_index_diff, feats_size_list,0)
-                loss = torch.zeros((1)).cuda()
-                bag_count = len(prediction_list)
-                for prediction in prediction_list:
-                    S = 1.0
-                    Y = 0.0
-                    for ii in prediction[0]:
-                        S = S * ii
-                        Y = Y + S
-                    Y = Y / len(prediction[0])
-                    YY = YY + Y / bag_count
-                    loss = loss + utils.sur_loss.sur_loss(prediction, sur_time, censor) / bag_count
-                Y_list.append(YY)
+                prediction,at_ = model(feats_list, edge_index, edge_index_diff, feats_size_list,0)
+
+                S = 1.0
+                Y = 0.0
+                for ii in prediction[0]:
+                    S = S * ii
+                    Y = Y + S
+                Y = Y / len(prediction[0])
+                loss = utils.sur_loss.sur_loss(prediction, sur_time, censor)
                 loss_cpu = loss.item()
                 total_loss += (loss_cpu)
-                ass_sur_time_list.append(sur_time)
-                ass_censor_list.append(censor)
-            elif args.model == 'sur_SWAP_GCN_CL':
-                feats_list, sur_time, censor, edge_index, edge_index_diff, feats_size_list, feats_info = \
-                    utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx], censor_list[idx],
-                                                data_map)
-                YY = 0.0
-                prediction_list, at_=model(feats_list, edge_index, edge_index_diff, feats_size_list,0)
-                prediction_list_cl, at_cl = model(feats_list, edge_index, edge_index_diff, feats_size_list,args.mask_prob)
-                loss = torch.zeros((1)).cuda()
-                bag_count = len(prediction_list)
-                for idd in range(0, len(prediction_list)):
-                    prediction = prediction_list[idd]
-                    prediction_cl = prediction_list_cl[idd]
-                    S = 1.0
-                    Y = 0.0
-                    for ii in prediction[0]:
-                        S = S * ii
-                        Y = Y + S
-                    Y = Y / len(prediction[0])
-                    YY = YY + Y / bag_count
-                    loss = loss + utils.sur_loss.sur_loss_cc(prediction, prediction_cl, sur_time, censor) / bag_count
-                Y_list.append(YY)
-                loss_cpu = loss.item()
-                total_loss += (loss_cpu)
+                Y_list.append(Y)
                 ass_sur_time_list.append(sur_time)
                 ass_censor_list.append(censor)
             elif args.model == 'sur_H2_MIL' or args.model == 'sur_HIGT':

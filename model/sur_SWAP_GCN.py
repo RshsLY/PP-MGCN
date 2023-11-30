@@ -118,10 +118,8 @@ class MIL(nn.Module):
                 rm_x_count=rm_x_count+pssz[i]
 
 
-        predict_list=[]
         x_v_list=[]
         at_=[]
-
 
         for i in range (self.number_scale):
             x_sub=x_[i]
@@ -143,6 +141,5 @@ class MIL(nn.Module):
 
         x_v=self.l_last(x_v)
         x_v=self.l_cla(x_v)
-        predict_list.append(x_v)
         # print("INnet:",time.time()-tim)
-        return predict_list,at_
+        return x_v,at_

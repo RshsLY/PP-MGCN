@@ -15,6 +15,7 @@ import utils.sur_bag_init
 import utils.sur_bag_build
 import utils.sur_loss
 import utils.sur_estimate
+import model.sur_PP_MGCN as PP_MGCN
 
 
 def data_process(WSI_name_list, sur_time_list, censor_list):
@@ -52,20 +53,17 @@ def get_one_fold_index(fold_num, number_kfold, index_all):
 def once_run(args, WSI_name_list, sur_time_list, censor_list, seed, run_num, data_map):
     all_fold_test_loss = []
     all_fold_test_assessment = []
+    all_fold_test_assessment_cmp = []
     all_fold_best_val_assessment = []
     WSI_name_list, sur_time_list, censor_list, index_all = data_process(WSI_name_list, sur_time_list, censor_list)
     for fold_num in range(5):
         train_index_split, val_index_split, test_index = get_one_fold_index(fold_num, args.number_kfold, index_all)
         best_assessment_val_one_fold = [0, -1]
         best_model_path_one_fold = ''
-        best_model_path_one_fold_cmp = ''
-        model = mil.MIL(args)
-        model = model.cuda()
-
         args_cmp = copy.deepcopy(args)
         args_cmp.number_scale = 1
-        model_cmp = mil.MIL(args_cmp)
-        model_cmp = model_cmp.cuda()
+        model = PP_MGCN.MIL(args, args_cmp)
+        model = model.cuda()
         optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         print('--------------------------------------------------------------------------------------------')
         print(model)
@@ -81,14 +79,20 @@ def once_run(args, WSI_name_list, sur_time_list, censor_list, seed, run_num, dat
         for epoch_num in range(args.epochs):
             if epoch_no_update == args.epochs_patience:
                 break
-            train_loss, train_assessment = train(args, args_cmp,model, model_cmp, train_index_split, WSI_name_list,
-                                                 sur_time_list, censor_list, optimizer,
-                                                 epoch_num + 1, fold_num + 1, run_num, data_map)
-            val_loss, val_assessment = val_and_test(args, model, val_index_split, WSI_name_list, sur_time_list,
-                                                    censor_list,
-                                                    epoch_num + 1, fold_num + 1, run_num, data_map)
+            train_loss, train_assessment, train_assessment_cmp = train(args, args_cmp, model, train_index_split,
+                                                                       WSI_name_list,
+                                                                       sur_time_list, censor_list, optimizer,
+                                                                       epoch_num + 1, fold_num + 1, run_num, data_map)
+            val_loss, val_assessment, val_assessment_cmp = val_and_test(args, args_cmp, model, val_index_split,
+                                                                        WSI_name_list, sur_time_list,
+                                                                        censor_list,
+                                                                        epoch_num + 1, fold_num + 1, run_num, data_map)
             print("   epoch：{:2d}  train_loss：{:.4f}   val_loss：{:.4f} ".format(epoch_num + 1, train_loss, val_loss),
-                  "\n  train assessment:", train_assessment, "\n  val_assessment:", val_assessment)
+                  "\n  train assessment:", train_assessment,
+                  "\n  train assessment_cmp:", train_assessment_cmp,
+                  "\n  val_assessment:", val_assessment,
+                  "\n  val_assessment_cmp:", val_assessment_cmp
+                  )
 
             if epoch_num < args.epochs_warm:
                 print("   warm epoch!")
@@ -96,300 +100,165 @@ def once_run(args, WSI_name_list, sur_time_list, censor_list, seed, run_num, dat
                 best_assessment_val_one_fold = [val_assessment, epoch_num]
                 if best_model_path_one_fold != '' and os.path.exists(best_model_path_one_fold):
                     os.remove(best_model_path_one_fold)
-                    os.remove(best_model_path_one_fold_cmp)
                     print("   delete last model")
                 best_model_path_one_fold = os.path.join(args.model_save_path,
                                                         args.dataset + '_' + args.task + '_' + args.model +
                                                         '_' + str(fold_num + 1) + '_' + args.time_stamp + '.pth')
-                best_model_path_one_fold_cmp = os.path.join(args.model_save_path,
-                                                            args.dataset + '_' + args.task + '_' + args.model +
-                                                            '_' + str(
-                                                                fold_num + 1) + '_' + args.time_stamp + "_CMP" + '.pth')
                 os.makedirs(args.model_save_path, exist_ok=True)
                 torch.save(model.state_dict(), best_model_path_one_fold)
-                torch.save(model_cmp.state_dict(), best_model_path_one_fold_cmp)
                 print("   model saved in", best_model_path_one_fold)
                 epoch_no_update = 0
             else:
                 epoch_no_update = epoch_no_update + 1
 
-        model_test = mil.MIL(args)
+        model_test = PP_MGCN.MIL(args, args_cmp)
         model_test = model_test.cuda()
         model_test.load_state_dict(torch.load(best_model_path_one_fold))
         model_test.eval()
-        test_loss, test_assessment = val_and_test(args, model_test, test_index, WSI_name_list, sur_time_list,
-                                                  censor_list, -1, fold_num + 1, run_num, data_map)
+        test_loss, test_assessment, test_assessment_cmp = val_and_test(args, args_cmp, model_test, test_index,
+                                                                       WSI_name_list, sur_time_list,
+                                                                       censor_list, -1, fold_num + 1, run_num, data_map)
         all_fold_test_loss.append(test_loss)
         all_fold_test_assessment.append(test_assessment)
+        all_fold_test_assessment_cmp.append(test_assessment_cmp)
         all_fold_best_val_assessment.append(best_assessment_val_one_fold)
         print('  test_loss:', test_loss)
         print('  test assessment:', test_assessment)
         print('  best_val_assessment:', best_assessment_val_one_fold)
-
-        model_test_cmp = mil.MIL(args_cmp)
-        model_test_cmp = model_test_cmp.cuda()
-        model_test_cmp.load_state_dict(torch.load(best_model_path_one_fold_cmp))
-        model_test_cmp.eval()
-        test_loss_cmp, test_assessment_cmp = val_and_test(args_cmp, model_test_cmp, test_index, WSI_name_list,
-                                                          sur_time_list,
-                                                          censor_list, -1, fold_num + 1, run_num, data_map)
-        print('  test_loss_cmp:', test_loss_cmp)
         print('  test assessment_cmp:', test_assessment_cmp)
 
     print(' run:', run_num, ' All fold test loss:', all_fold_test_loss, ',mean:', np.mean(all_fold_test_loss))
     print(' run:', run_num, ' All fold best val assessment:', all_fold_best_val_assessment)
     print(' run:', run_num, ' All fold test assessment:', all_fold_test_assessment)
+    print(' run:', run_num, ' All fold test assessment_cmp:', all_fold_test_assessment_cmp)
     print(' run:', run_num, "mean c-index:", np.mean(all_fold_test_assessment))
+    print(' run:', run_num, "mean c-index cmp:", np.mean(all_fold_test_assessment_cmp))
     return np.mean(all_fold_test_assessment)
 
 
-def train(args, args_cmp,model, model_cmp, index_split, WSI_name_list, sur_time_list, censor_list, optimizer, epoch_num,
+def get_Y(prediction):
+    S = 1.0
+    Y = 0.0
+    for ii in prediction[0]:
+        S = S * ii
+        Y = Y + S
+    Y = Y / len(prediction[0])
+    return Y
+
+
+def train(args, args_cmp, model, index_split, WSI_name_list, sur_time_list, censor_list, optimizer, epoch_num,
           fold_num, run_num, data_map):
     model.train()
-    model_cmp.train()
     random.shuffle(index_split)
     total_loss = 0
     Y_list = []
+    Y_list_cmp = []
     ass_sur_time_list = []
+    ass_sur_time_list_cmp = []
     ass_censor_list = []
+    ass_censor_list_cmp = []
     for (i, idx) in enumerate(index_split):
-        if args.model == 'sur_SWAP_GCN':
+        feats_list, sur_time, censor, edge_index, edge_index_diff, feats_size_list, feats_info = \
+            utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx], censor_list[idx], data_map)
+        feats_list_cmp, sur_time_cmp, censor_cmp, edge_index_cmp, edge_index_diff_cmp, feats_size_list_cmp, feats_info_cmp = \
+            utils.sur_bag_build.get_bag(args_cmp, WSI_name_list[idx], sur_time_list[idx], censor_list[idx], data_map)
 
-            feats_list, sur_time, censor, edge_index, edge_index_diff, feats_size_list, feats_info = \
-                utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx], censor_list[idx], data_map)
-            prediction_list, at_ = model(feats_list, edge_index, edge_index_diff, feats_size_list, 0)
+        prediction, at_, prediction_cmp, at_cpm = model(feats_list, edge_index, edge_index_diff, feats_size_list,
+                                                        feats_list_cmp, edge_index_cmp, edge_index_diff_cmp,
+                                                        feats_size_list_cmp, args.mask_prob)
 
+        loss = utils.sur_loss.sur_loss_cc(prediction, prediction_cmp, sur_time, censor)
+        loss_cpu = loss.item()
+        total_loss += (loss_cpu)
+        loss.backward()
 
-            feats_list_cmp, sur_time, censor, edge_index_cmp, edge_index_diff_cmp, feats_size_list_cmp, feats_info_cmp = \
-                utils.sur_bag_build.get_bag(args_cmp, WSI_name_list[idx], sur_time_list[idx], censor_list[idx], data_map)
-            prediction_list_cmp, at_cpm = model_cmp(feats_list_cmp, edge_index_cmp, edge_index_diff_cmp, feats_size_list_cmp,0)
-
-            YY = 0.0
-            loss = torch.zeros((1)).cuda()
-            bag_count = len(prediction_list)
-            for ic in range(len(prediction_list)):
-                prediction = prediction_list[ic]
-                S = 1.0
-                Y = 0.0
-                for ii in prediction_list[ic][0]:
-                    S = S * ii
-                    Y = Y + S
-                Y = Y / len(prediction_list[ic][0])
-                YY = YY + Y / bag_count
-                loss = loss + utils.sur_loss.sur_loss_cc(prediction_list[ic], prediction_list_cmp[ic], sur_time,
-                                                         censor) / bag_count
-            Y_list.append(YY)
-            loss_cpu = loss.item()
-            total_loss += (loss_cpu)
-            loss.backward()
-            ass_sur_time_list.append(sur_time)
-            ass_censor_list.append(censor)
-        elif args.model == 'sur_H2_MIL':
-            data = utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx], censor_list[idx], data_map)
-            prediction = model(data)
-            S = 1.0
-            Y = 0.0
-            for ii in prediction[0]:
-                S = S * ii
-                Y = Y + S
-            Y = Y / len(prediction[0])
-            loss = utils.sur_loss.sur_loss(prediction, data["sur_time"], data["censor"])
-            loss.backward()
-            loss_cpu = loss.item()
-            total_loss += (loss_cpu)
-            Y_list.append(Y)
-            ass_sur_time_list.append(data["sur_time"])
-            ass_censor_list.append(data["censor"])
-        elif args.model == 'sur_Patch_GCN':
-            feats_list, sur_time, censor, edge_index = utils.sur_bag_build.get_bag(args, WSI_name_list[idx],
-                                                                                   sur_time_list[idx], censor_list[idx],
-                                                                                   data_map)
-            prediction = model(feats_list, edge_index)
-            S = 1.0
-            Y = 0.0
-            for ii in prediction[0]:
-                S = S * ii
-                Y = Y + S
-            Y = Y / len(prediction[0])
-            loss = utils.sur_loss.sur_loss(prediction, sur_time, censor)
-            loss.backward()
-            loss_cpu = loss.item()
-            total_loss += (loss_cpu)
-            Y_list.append(Y)
-            ass_sur_time_list.append(sur_time)
-            ass_censor_list.append(censor)
-        elif args.model == 'sur_DSMIL':
-            feats_list, sur_time, censor = utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx],
-                                                                       censor_list[idx], data_map)
-            prediction_max, prediction = model(feats_list)
-            S = 1.0
-            Y = 0.0
-            for ii in prediction[0]:
-                S = S * ii
-                Y = Y + S
-            Y = Y / len(prediction[0])
-            loss = utils.sur_loss.sur_loss(prediction, sur_time, censor) * 0.5
-            loss = loss + utils.sur_loss.sur_loss(prediction_max, sur_time, censor) * 0.5
-            loss.backward()
-            loss_cpu = loss.item()
-            total_loss += (loss_cpu)
-            Y_list.append(Y)
-            ass_sur_time_list.append(sur_time)
-            ass_censor_list.append(censor)
-        else:
-            feats_list, sur_time, censor = utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx],
-                                                                       censor_list[idx], data_map)
-            prediction = model(feats_list)
-            S = 1.0
-            Y = 0.0
-            for ii in prediction[0]:
-                S = S * ii
-                Y = Y + S
-            Y = Y / len(prediction[0])
-            loss = utils.sur_loss.sur_loss(prediction, sur_time, censor)
-            loss.backward()
-            loss_cpu = loss.item()
-            total_loss += (loss_cpu)
-            Y_list.append(Y)
-            ass_sur_time_list.append(sur_time)
-            ass_censor_list.append(censor)
-        if i % (len(index_split) // 20) == 0:  # out 10 case
+        Y = get_Y(prediction)
+        Y_cmp = get_Y(prediction_cmp)
+        Y_list.append(Y)
+        Y_list_cmp.append(Y_cmp)
+        ass_sur_time_list.append(sur_time)
+        ass_censor_list.append(censor)
+        ass_sur_time_list_cmp.append(sur_time_cmp)
+        ass_censor_list_cmp.append(censor_cmp)
+        if i % (len(index_split) // 20) == 0:  # out 20 case
             print(
                 "    run/fold/epoch：{:d}/{:d}/{:d}  {:d}/{:d}   now_loss：{:.4f}   censor：{:.0f}   sur_time：{:.0f}   Y：{:.4f}    predict：{:.4f}  ".format(
                     run_num,
                     fold_num, epoch_num, i + 1, len(index_split), loss_cpu, censor_list[idx], sur_time_list[idx],
                     Y.item(), prediction[0][int(sur_time_list[idx])].item()), feats_list.shape
-                )
+            )
             for ii in prediction[0]:
                 print(round(ii.item(), 2), end=' ')
             print()
         if (i + 1) % args.batch_size == 0 or (i + 1) == len(index_split):
             optimizer.step()
             optimizer.zero_grad()
+            break
 
     c_index = utils.sur_estimate.c_index_cal(Y_list, ass_sur_time_list, ass_censor_list)
-    return total_loss / len(index_split), c_index
+    c_index_cmp = utils.sur_estimate.c_index_cal(Y_list_cmp, ass_sur_time_list_cmp, ass_censor_list_cmp)
+    return total_loss / len(index_split), c_index, c_index_cmp
 
 
-def val_and_test(args, model, index_split, WSI_name_list, sur_time_list, censor_list, epoch_num, fold_num, run_num,
+def val_and_test(args, args_cmp, model, index_split, WSI_name_list, sur_time_list, censor_list, epoch_num, fold_num,
+                 run_num,
                  data_map):
     model.eval()
     random.shuffle(index_split)
     with torch.no_grad():
         total_loss = 0
         Y_list = []
+        Y_list_cmp = []
         ass_sur_time_list = []
+        ass_sur_time_list_cmp = []
         ass_censor_list = []
+        ass_censor_list_cmp = []
         for (i, idx) in enumerate(index_split):
-            if args.model == 'sur_SWAP_GCN':
-                feats_list, sur_time, censor, edge_index, edge_index_diff, feats_size_list, feats_info = \
-                    utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx], censor_list[idx],
-                                                data_map)
-                YY = 0.0
-                prediction_list, at_ = model(feats_list, edge_index, edge_index_diff, feats_size_list, 0)
-                loss = torch.zeros((1)).cuda()
-                bag_count = len(prediction_list)
-                for prediction in prediction_list:
-                    S = 1.0
-                    Y = 0.0
-                    for ii in prediction[0]:
-                        S = S * ii
-                        Y = Y + S
-                    Y = Y / len(prediction[0])
-                    YY = YY + Y / bag_count
-                    loss = loss + utils.sur_loss.sur_loss(prediction, sur_time, censor) / bag_count
-                Y_list.append(YY)
-                loss_cpu = loss.item()
-                total_loss += (loss_cpu)
-                ass_sur_time_list.append(sur_time)
-                ass_censor_list.append(censor)
-            elif args.model == 'sur_H2_MIL':
-                data = utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx], censor_list[idx],
-                                                   data_map)
-                prediction = model(data)
-                S = 1.0
-                Y = 0.0
-                for ii in prediction[0]:
-                    S = S * ii
-                    Y = Y + S
-                Y = Y / len(prediction[0])
-                loss = utils.sur_loss.sur_loss(prediction, data["sur_time"], data["censor"])
-                loss_cpu = loss.item()
-                total_loss += (loss_cpu)
-                Y_list.append(Y)
-                ass_sur_time_list.append(data["sur_time"])
-                ass_censor_list.append(data["censor"])
-            elif args.model == 'sur_Patch_GCN':
-                feats_list, sur_time, censor, edge_index = utils.sur_bag_build.get_bag(args, WSI_name_list[idx],
-                                                                                       sur_time_list[idx],
-                                                                                       censor_list[idx], data_map)
-                prediction = model(feats_list, edge_index)
-                S = 1.0
-                Y = 0.0
-                for ii in prediction[0]:
-                    S = S * ii
-                    Y = Y + S
-                Y = Y / len(prediction[0])
-                loss = utils.sur_loss.sur_loss(prediction, sur_time, censor)
-                loss_cpu = loss.item()
-                total_loss += (loss_cpu)
-                Y_list.append(Y)
-                ass_sur_time_list.append(sur_time)
-                ass_censor_list.append(censor)
-            elif args.model == 'sur_DSMIL':
-                feats_list, sur_time, censor = utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx],
-                                                                           censor_list[idx], data_map)
-                prediction_max, prediction = model(feats_list)
-                S = 1.0
-                Y = 0.0
-                for ii in prediction[0]:
-                    S = S * ii
-                    Y = Y + S
-                Y = Y / len(prediction[0])
-                loss = utils.sur_loss.sur_loss(prediction, sur_time, censor) * 0.5
-                loss = loss + utils.sur_loss.sur_loss(prediction_max, sur_time, censor) * 0.5
-                loss_cpu = loss.item()
-                total_loss += (loss_cpu)
-                Y_list.append(Y)
-                ass_sur_time_list.append(sur_time)
-                ass_censor_list.append(censor)
-            else:
-                feats_list, sur_time, censor = utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx],
-                                                                           censor_list[idx], data_map)
-                prediction = model(feats_list)
-                S = 1.0
-                Y = 0.0
-                for ii in prediction[0]:
-                    S = S * ii
-                    Y = Y + S
-                Y = Y / len(prediction[0])
-                loss = utils.sur_loss.sur_loss(prediction, sur_time, censor)
-                loss_cpu = loss.item()
-                total_loss += (loss_cpu)
-                Y_list.append(Y)
-                ass_sur_time_list.append(sur_time)
-                ass_censor_list.append(censor)
-            if i % (len(index_split) // 10) == 0:  # out 20 case
+            feats_list, sur_time, censor, edge_index, edge_index_diff, feats_size_list, feats_info = \
+                utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx], censor_list[idx], data_map)
+            feats_list_cmp, sur_time_cmp, censor_cmp, edge_index_cmp, edge_index_diff_cmp, feats_size_list_cmp, feats_info_cmp = \
+                utils.sur_bag_build.get_bag(args_cmp, WSI_name_list[idx], sur_time_list[idx], censor_list[idx],
+                                            data_map)
+
+            prediction, at_, prediction_cmp, at_cpm = model(feats_list, edge_index, edge_index_diff, feats_size_list,
+                                                            feats_list_cmp, edge_index_cmp, edge_index_diff_cmp,
+                                                            feats_size_list_cmp, args.mask_prob)
+
+            loss = utils.sur_loss.sur_loss_cc(prediction, prediction_cmp, sur_time, censor)
+            loss_cpu = loss.item()
+            total_loss += (loss_cpu)
+
+            Y = get_Y(prediction)
+            Y_cmp = get_Y(prediction_cmp)
+            Y_list.append(Y)
+            Y_list_cmp.append(Y_cmp)
+            ass_sur_time_list.append(sur_time)
+            ass_censor_list.append(censor)
+            ass_sur_time_list_cmp.append(sur_time_cmp)
+            ass_censor_list_cmp.append(censor_cmp)
+            if i % (len(index_split) // 20) == 0:  # out 20 case
                 print(
-                    "    run/fold/epoch：{:d}/{:d}/{:d}  {:d}/{:d}   now_loss：{:.4f}   censor：{:.0f}   sur_time：{:.0f}   Y：{:.4f}    predict：{:.4f}"
-                    .format(run_num, fold_num, epoch_num, i + 1, len(index_split), loss_cpu, censor_list[idx],
-                            sur_time_list[idx], Y.item(),
-                            prediction[0][int(sur_time_list[idx])].item()))
+                    "    run/fold/epoch：{:d}/{:d}/{:d}  {:d}/{:d}   now_loss：{:.4f}   censor：{:.0f}   sur_time：{:.0f}   Y：{:.4f}    predict：{:.4f}  ".format(
+                        run_num,
+                        fold_num, epoch_num, i + 1, len(index_split), loss_cpu, censor_list[idx], sur_time_list[idx],
+                        Y.item(), prediction[0][int(sur_time_list[idx])].item()), feats_list.shape
+                )
                 for ii in prediction[0]:
                     print(round(ii.item(), 2), end=' ')
                 print()
+
         c_index = utils.sur_estimate.c_index_cal(Y_list, ass_sur_time_list, ass_censor_list)
-        return total_loss / len(index_split), c_index
+        c_index_cmp = utils.sur_estimate.c_index_cal(Y_list_cmp, ass_sur_time_list_cmp, ass_censor_list_cmp)
+        return total_loss / len(index_split), c_index, c_index_cmp
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--patch_size", type=int, default=512, help="patch_size to use")
-    parser.add_argument('--gpu_index', type=int, default=1, help='GPU ID(s)')
+    parser.add_argument('--gpu_index', type=int, default=0, help='GPU ID(s)')
     parser.add_argument("--dataset", type=str, default="TCGA_BLCA",
                         help="Database to use[TCGA_LUAD,TCGA_LUSC,TCGA_UCEC,TCGA_BRCA,TCGA_GBMLGG,TCGA_BLCA]")
-    parser.add_argument("--model", type=str, default="sur_SWAP_GCN",
-                        help="Model to use[sur_MIL_mean,sur_MIL_max,sur_ABMIL,sur_Patch_GCN,sur_DSMIL,sur_TransMIL,sur_H2_MIL,sur_SWAP_GCN]")
+    parser.add_argument("--model", type=str, default="sur_PP_MGCN")
     parser.add_argument("--in_classes", type=int, default=1024, help="Feature size")
     parser.add_argument("--out_classes", type=int, default=30, help="Survival vector")
     # ------SWAP_GCN
@@ -420,8 +289,6 @@ if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(str(x) for x in gpu_ids)
     sys.stdout = utils.sys_utils.Logger(sys.stdout, model_name=args.model + args.dataset + "_cmp")
     sys.stderr = utils.sys_utils.Logger(sys.stderr, model_name=args.model + args.dataset + "_cmp")
-    assert args.model in ["sur_MIL_mean", "sur_MIL_max", "sur_ABMIL", "sur_Patch_GCN", "sur_DSMIL", "sur_TransMIL",
-                          "sur_H2_MIL", "sur_SWAP_GCN", "sur_MIL_Trans"]
     print("dataset:", args.dataset, "  model:", args.model, "  task:", args.task, "  gpu:", gpu_ids, "  seed:",
           args.divide_seed,
           "  lr:", args.lr, "  batch_size:", args.batch_size, "  patch_size:", args.patch_size, "   number_scale:",
@@ -429,62 +296,9 @@ if __name__ == '__main__':
           "  using_Swin:", args.using_Swin, "   gcn_layer:", args.gcn_layer, "   magnification_scale",
           args.magnification_scale, "    out_classes:", args.out_classes, "mask_prob", args.mask_prob)
     print('--------------------------------------------------------------------------------------------')
-    if args.model == 'sur_MIL_mean':
-        import model.sur_MIL_mean as mil
-
-        with open('model/sur_MIL_mean.py', 'r') as viewFile:
-            data = viewFile.read()
-        print(data)
-    elif args.model == 'sur_MIL_max':
-        import model.sur_MIL_max as mil
-
-        with open('model/sur_MIL_max.py', 'r') as viewFile:
-            data = viewFile.read()
-        print(data)
-    elif args.model == 'sur_ABMIL':
-        import model.sur_ABMIL as mil
-
-        with open('model/sur_ABMIL.py', 'r') as viewFile:
-            data = viewFile.read()
-        print(data)
-    elif args.model == 'sur_Patch_GCN':
-        import model.sur_Patch_GCN as mil
-
-        with open('model/sur_Patch_GCN.py', 'r') as viewFile:
-            data = viewFile.read()
-        print(data)
-    elif args.model == 'sur_DSMIL':
-        import model.sur_DSMIL as mil
-
-        with open('model/sur_DSMIL.py', 'r') as viewFile:
-            data = viewFile.read()
-        print(data)
-    elif args.model == 'sur_TransMIL':
-        import model.sur_TransMIL as mil
-
-        with open('model/sur_TransMIL.py', 'r') as viewFile:
-            data = viewFile.read()
-        print(data)
-    elif args.model == 'sur_H2_MIL':
-        import model.sur_H2_MIL as mil
-
-        with open('model/sur_H2_MIL.py', 'r') as viewFile:
-            data = viewFile.read()
-        print(data)
-    elif args.model == 'sur_SWAP_GCN':
-        import model.sur_SWAP_GCN as mil
-
-        with open('model/sur_SWAP_GCN.py', 'r') as viewFile:
-            data = viewFile.read()
-        print(data)
-    elif args.model == 'sur_MIL_Trans':
-        import model.sur_MIL_Trans as mil
-
-        with open('model/sur_MIL_Trans.py', 'r') as viewFile:
-            data = viewFile.read()
-        print(data)
-    else:
-        import model.sur_MIL_mean as mil
+    with open('model/sur_SWAP_GCN.py', 'r') as viewFile:
+        data = viewFile.read()
+    print(data)
     print('--------------------------------------------------------------------------------------------')
 
     assert args.number_scale in [1, 2, 3, 4, 5]

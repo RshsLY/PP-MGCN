@@ -21,7 +21,7 @@ def get_bag(args,WSI_name, sur_time,censor,data_map):
         csv_path = os.path.join('TCGA_BLCA_Feats', WSI_name + '_' + str(args.patch_size) + '_0_0' + '.csv')
     if args.dataset == 'TCGA_GBMLGG':
         csv_path = os.path.join('TCGA_GBMLGG_Feats', WSI_name + '_' + str(args.patch_size) + '_0_0' + '.csv')
-    if args.model=='sur_SWAP_GCN' or args.model=='sur_SWAP_GCN_CL':
+    if args.model=='sur_SWAP_GCN' or args.model=='sur_PP_MGCN':
         #for cmp model
         WSI_name=WSI_name+"_scale"+str(args.number_scale)
 
