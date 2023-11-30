@@ -299,6 +299,9 @@ if __name__ == '__main__':
     with open('model/sur_SWAP_GCN.py', 'r') as viewFile:
         data = viewFile.read()
     print(data)
+    with open('sur_main_cc.py', 'r') as viewFile:
+        data = viewFile.read()
+    print(data)
     print('--------------------------------------------------------------------------------------------')
 
     assert args.number_scale in [1, 2, 3, 4, 5]
