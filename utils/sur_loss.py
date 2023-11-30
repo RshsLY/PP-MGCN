@@ -41,9 +41,9 @@ def diff_CL(h,hc,sur_time,censor):
         hc = torch.squeeze(hc)
         hc = torch.split(hc, [sur_time, 1, hc.shape[0] - 1 - sur_time])
 
-        h0_diff = torch.clamp(h[0] - hc[0], min=0)
+        h0_diff = torch.clamp(h[0] - hc[0]-0.1, min=0)
         s0_diff = -torch.sum(torch.log(1.0 - h0_diff + 1e-30))
-        h1_diff = torch.clamp(hc[1] - h[1], min=0)
+        h1_diff = torch.clamp(hc[1] - h[1]-0.1, min=0)
         s1_diff = -torch.sum(torch.log(1.0 - h1_diff + 1e-30))
         if censor==1:
             return s0_diff
