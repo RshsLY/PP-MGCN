@@ -176,7 +176,6 @@ def train(args, args_cmp, model, index_split, WSI_name_list, sur_time_list, cens
         if (i + 1) % args.batch_size == 0 or (i + 1) == len(index_split):
             optimizer.step()
             optimizer.zero_grad()
-            break
 
     c_index = utils.sur_estimate.c_index_cal(Y_list, ass_sur_time_list, ass_censor_list)
     c_index_cmp = utils.sur_estimate.c_index_cal(Y_list_cmp, ass_sur_time_list_cmp, ass_censor_list_cmp)
@@ -240,8 +239,8 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--patch_size", type=int, default=512, help="patch_size to use")
-    parser.add_argument('--gpu_index', type=int, default=1, help='GPU ID(s)')
-    parser.add_argument("--dataset", type=str, default="TCGA_BLCA",
+    parser.add_argument('--gpu_index', type=int, default=5, help='GPU ID(s)')
+    parser.add_argument("--dataset", type=str, default="TCGA_LUAD",
                         help="Database to use[TCGA_LUAD,TCGA_LUSC,TCGA_UCEC,TCGA_BRCA,TCGA_GBMLGG,TCGA_BLCA]")
     parser.add_argument("--model", type=str, default="sur_PP_MGCN")
     parser.add_argument("--in_classes", type=int, default=1024, help="Feature size")
@@ -251,7 +250,7 @@ if __name__ == '__main__':
     parser.add_argument("--number_scale", type=int, default=3, help="[1,4]")
     parser.add_argument("--using_Swin", type=int, default=1, help="[0,1]")
     parser.add_argument("--gcn_layer", type=int, default=1, help="Number of graph convs in each scale")
-    parser.add_argument("--mask_prob", type=float, default=0, help="")
+    parser.add_argument("--mask_prob", type=float, default=0.6, help="")
     # -----SWAP_GCN
     parser.add_argument("--model_save_path", type=str, default="saved_model", help="path for save model")
     parser.add_argument("--task", type=str, default="survival", help="Task of classification[survival]")
