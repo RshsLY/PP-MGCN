@@ -1,21 +1,4 @@
-import copy
-import os
-import sys
-import time
 
-import torch
-import random
-import os.path
-import argparse
-import numpy as np
-from torch.optim import Adam
-import datetime
-import utils.sys_utils
-import utils.sur_bag_init
-import utils.sur_bag_build
-import utils.sur_loss
-import utils.sur_estimate
-import model.sur_PP_MGCN as PP_MGCN
 
 
 def data_process(WSI_name_list, sur_time_list, censor_list):
@@ -253,9 +236,11 @@ def val_and_test(args, args_cmp, model, index_split, WSI_name_list, sur_time_lis
 
 
 if __name__ == '__main__':
+    import os
+    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--patch_size", type=int, default=512, help="patch_size to use")
-    parser.add_argument('--gpu_index', type=int, default=0, help='GPU ID(s)')
+    parser.add_argument('--gpu_index', type=int, default=1, help='GPU ID(s)')
     parser.add_argument("--dataset", type=str, default="TCGA_BLCA",
                         help="Database to use[TCGA_LUAD,TCGA_LUSC,TCGA_UCEC,TCGA_BRCA,TCGA_GBMLGG,TCGA_BLCA]")
     parser.add_argument("--model", type=str, default="sur_PP_MGCN")
@@ -284,9 +269,24 @@ if __name__ == '__main__':
     parser.add_argument("--number_run", type=int, default=1, help="Number of runs")
     parser.add_argument("--time_stamp", type=str, default="-1")
     args, _ = parser.parse_known_args()
-    args.time_stamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S.%f')
     gpu_ids = tuple((args.gpu_index,))
     os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(str(x) for x in gpu_ids)
+    import copy
+    import sys
+    import torch
+    import random
+    import os.path
+    import numpy as np
+    from torch.optim import Adam
+    import datetime
+    import utils.sys_utils
+    import utils.sur_bag_init
+    import utils.sur_bag_build
+    import utils.sur_loss
+    import utils.sur_estimate
+    import model.sur_PP_MGCN as PP_MGCN
+
+    args.time_stamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S.%f')
     sys.stdout = utils.sys_utils.Logger(sys.stdout, model_name=args.model + args.dataset + "_cmp")
     sys.stderr = utils.sys_utils.Logger(sys.stderr, model_name=args.model + args.dataset + "_cmp")
     print("dataset:", args.dataset, "  model:", args.model, "  task:", args.task, "  gpu:", gpu_ids, "  seed:",
