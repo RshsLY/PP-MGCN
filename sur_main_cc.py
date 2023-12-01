@@ -246,7 +246,7 @@ if __name__ == '__main__':
     parser.add_argument("--in_classes", type=int, default=1024, help="Feature size")
     parser.add_argument("--out_classes", type=int, default=30, help="Survival vector")
     # ------SWAP_GCN
-    parser.add_argument("--magnification_scale", type=int, default=3, help="")
+    parser.add_argument("--magnification_scale", type=int, default=2, help="")
     parser.add_argument("--number_scale", type=int, default=3, help="[1,4]")
     parser.add_argument("--using_Swin", type=int, default=1, help="[0,1]")
     parser.add_argument("--gcn_layer", type=int, default=1, help="Number of graph convs in each scale")
@@ -256,7 +256,7 @@ if __name__ == '__main__':
     parser.add_argument("--divide_seed", type=int, default=2023, help="")
     # ------------------
     parser.add_argument("--batch_size", type=int, default=32, help="")
-    parser.add_argument("--epochs", type=int, default=200, help="")
+    parser.add_argument("--epochs", type=int, default=128, help="")
     parser.add_argument("--epochs_patience", type=int, default=32, help="")
     parser.add_argument("--epochs_warm", type=int, default=8, help="")
     parser.add_argument("--drop_out_ratio", type=float, default=0.2, help="")
@@ -300,7 +300,7 @@ if __name__ == '__main__':
     with open('sur_main_cc.py', 'r') as viewFile:
         data = viewFile.read()
     print(data)
-    with open('/utils/sur_loss.py', 'r') as viewFile:
+    with open('utils/sur_loss.py', 'r') as viewFile:
         data = viewFile.read()
     print(data)
     print('--------------------------------------------------------------------------------------------')

@@ -77,8 +77,7 @@ class MIL(nn.Module):
                 for j in range(bag_count_sigle_layer):
                     pssz[i]=pssz[i]+feats_size_list[bag_count_idx]
                     bag_count_idx+=1
-                if i<=0:
-                    bag_count_sigle_layer=bag_count_sigle_layer*self.magnification_scale*self.magnification_scale
+                bag_count_sigle_layer=bag_count_sigle_layer*self.magnification_scale*self.magnification_scale
         else:
             for i in range(len(feats_size_list)):
                 pssz[i]=feats_size_list[i]
