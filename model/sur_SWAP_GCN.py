@@ -1,14 +1,9 @@
-import copy
-import time
-
-import numpy as np
 import torch.nn as nn
 import  torch
-import torch.nn.functional as F
-from torch_geometric.nn import GATConv,GATv2Conv,SAGPooling,global_mean_pool,ASAPooling,global_max_pool,GCNConv,InstanceNorm,GINConv,GENConv,DeepGCNLayer
-from torch.nn import   LeakyReLU,LayerNorm
+from torch_geometric.nn import DeepGCNLayer
+from torch.nn import  LeakyReLU,LayerNorm
 
-from model.simple_conv import MaskAddGraphConv
+from model.simple_conv import  AddGraphConv
 
 
 class MIL(nn.Module):
@@ -41,14 +36,13 @@ class MIL(nn.Module):
         self.att3=torch.nn.ModuleList()
         self.att_softmax=torch.nn.ModuleList()
         self.att_l1=torch.nn.ModuleList()
-        #self.trans = torch.nn.ModuleList()
         for i in range (self.number_scale):
             for j in range(self.gcn_layer):
-                self.gnn_convs[i].append(DeepGCNLayer(MaskAddGraphConv(in_classes, in_classes),
+                self.gnn_convs[i].append(DeepGCNLayer(AddGraphConv(in_classes, in_classes),
                                          LayerNorm(in_classes),
                                          LeakyReLU(), block='plain', dropout=0.1,ckpt_grad=0))
 
-            self.gnn_convs_diff.append(DeepGCNLayer(MaskAddGraphConv(in_classes, in_classes),
+            self.gnn_convs_diff.append(DeepGCNLayer(AddGraphConv(in_classes, in_classes),
                                          LayerNorm(in_classes),
                                          LeakyReLU(), block='plain', dropout=0.1,ckpt_grad=0))
             self.att1.append(nn.Sequential(nn.Linear(in_classes*(self.gcn_layer+1), in_classes*(self.gcn_layer+1)), nn.Tanh(), nn.Dropout(drop_out_ratio),))
@@ -61,8 +55,6 @@ class MIL(nn.Module):
                 nn.Dropout(drop_out_ratio),
             ))
 
-            #self.trans.append(nn.TransformerEncoder(nn.TransformerEncoderLayer(d_model=in_classes, nhead=8), num_layers=2))
-
 
         self.l_last=nn.Sequential(
                 nn.Linear(in_classes*(self.number_scale)*(self.gcn_layer+1), in_classes*(self.number_scale)*(self.gcn_layer+1)),
@@ -74,7 +66,7 @@ class MIL(nn.Module):
 
 
 
-    def forward(self, x,edge_index,edge_index_diff,feats_size_list,mask_prob):
+    def forward(self, x,edge_index,edge_index_diff,feats_size_list):
         # tim=time.time()
         x = self.l0(x)
         pssz = [0, 0, 0, 0,0]
@@ -100,11 +92,8 @@ class MIL(nn.Module):
 
             x_.append(xx)
             for conv in self.gnn_convs[i]:
-                xx = conv(xx, edge_index[i],0)
+                xx = conv(xx, edge_index[i])
                 x_[-1] = torch.cat((x_[-1], xx), dim=-1)
-            # xx = torch.unsqueeze(xx, 0)
-            # xx = self.trans[i](xx)
-            # xx = torch.squeeze(xx, 0)
             x = torch.cat((x[0], xx, x[2]))
             edge_index[i] = edge_index[i] + rm_x_count
 
@@ -112,7 +101,7 @@ class MIL(nn.Module):
                 x = torch.split(x,[rm_x_count, pssz[i] + pssz[i + 1], all_x_count - rm_x_count - pssz[i] - pssz[i + 1]],0)
                 xx = x[1]
                 edge_index_diff[i] = edge_index_diff[i] - rm_x_count
-                xx = self.gnn_convs_diff[i](xx, edge_index_diff[i], mask_prob)
+                xx = self.gnn_convs_diff[i](xx, edge_index_diff[i])
                 x = torch.cat((x[0], xx, x[2]))
                 edge_index_diff[i] = edge_index_diff[i] + rm_x_count
                 rm_x_count=rm_x_count+pssz[i]

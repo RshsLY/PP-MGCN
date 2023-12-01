@@ -118,7 +118,7 @@ def train(args, model, index_split, WSI_name_list,sur_time_list,censor_list, opt
         if args.model == 'sur_SWAP_GCN':
             feats_list, sur_time, censor, edge_index, edge_index_diff, feats_size_list, feats_info = \
                 utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx], censor_list[idx], data_map)
-            prediction, at_ = model(feats_list, edge_index, edge_index_diff, feats_size_list, 0)
+            prediction, at_ = model(feats_list, edge_index, edge_index_diff, feats_size_list)
 
             S = 1.0
             Y = 0.0
@@ -224,7 +224,7 @@ def val_and_test(args, model, index_split, WSI_name_list,sur_time_list,censor_li
             if args.model == 'sur_SWAP_GCN':
                 feats_list, sur_time, censor, edge_index, edge_index_diff, feats_size_list,feats_info= \
                     utils.sur_bag_build.get_bag(args, WSI_name_list[idx], sur_time_list[idx], censor_list[idx], data_map)
-                prediction,at_ = model(feats_list, edge_index, edge_index_diff, feats_size_list,0)
+                prediction,at_ = model(feats_list, edge_index, edge_index_diff, feats_size_list)
 
                 S = 1.0
                 Y = 0.0
@@ -318,7 +318,6 @@ if __name__ == '__main__':
     parser.add_argument("--in_classes", type=int,            default=1024,              help="Feature size")
     parser.add_argument("--out_classes", type=int,           default=30,                help="Survival vector")
     #------SWAP_GCN
-    parser.add_argument("--mask_prob", type=float,           default=0.6,               help="")
     parser.add_argument("--magnification_scale", type=int,   default=3,                 help="")
     parser.add_argument("--number_scale", type=int,          default=3,                 help="[1,4]")
     parser.add_argument("--using_Swin",type=int,             default=1,                 help="[0,1]")
@@ -440,7 +439,7 @@ if __name__ == '__main__':
     print("all run c-index:",all_c_index,"  mean:",np.mean(all_c_index))
     print("dataset:", args.dataset, "  model:", args.model, "  task:", args.task, "  gpu:", gpu_ids, "  seed:", args.divide_seed,
           "  lr:", args.lr, "  batch_size:", args.batch_size, "  patch_size:", args.patch_size, "   number_scale:", args.number_scale,
-          "  using_Swin:", args.using_Swin, "   gcn_layer", args.gcn_layer,"   magnification_scale", args.magnification_scale," mask_prob:" ,args.mask_prob)
+          "  using_Swin:", args.using_Swin, "   gcn_layer", args.gcn_layer,"   magnification_scale", args.magnification_scale)
 
 
 

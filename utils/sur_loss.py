@@ -29,7 +29,7 @@ def diff_CL(h,hc,sur_time,censor):
         hc = torch.squeeze(hc)
         hc = torch.split(hc, [1, hc.shape[0] - 1])
 
-        h1_diff = torch.clamp(h[0] - hc[0], min=0)
+        h1_diff = torch.clamp(hc[0] - h[0], min=0)
         s1_diff = -torch.sum(torch.log(1.0 - h1_diff + 1e-30))
         if censor == 1:
             return s1_diff-s1_diff
@@ -52,5 +52,3 @@ def diff_CL(h,hc,sur_time,censor):
 
 def sur_loss_cc(h,h1,sur_time,censor):
     return sur_loss(h,sur_time,censor)+diff_CL(h,h1,sur_time,censor)
-def sur_loss_ccc(h,h1,h2,sur_time,censor):
-    return sur_loss(h,sur_time,censor)+diff_CL(h,h1,sur_time,censor)+diff_CL(h,h2,sur_time,censor)

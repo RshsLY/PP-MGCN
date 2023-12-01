@@ -44,7 +44,7 @@ def once_run(args, WSI_name_list, sur_time_list, censor_list, seed, run_num, dat
         best_assessment_val_one_fold = [0, -1]
         best_model_path_one_fold = ''
         args_cmp = copy.deepcopy(args)
-        args_cmp.number_scale = 1
+        args_cmp.number_scale -=1
         model = PP_MGCN.MIL(args, args_cmp)
         model = model.cuda()
         optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -148,7 +148,7 @@ def train(args, args_cmp, model, index_split, WSI_name_list, sur_time_list, cens
 
         prediction, at_, prediction_cmp, at_cpm = model(feats_list, edge_index, edge_index_diff, feats_size_list,
                                                         feats_list_cmp, edge_index_cmp, edge_index_diff_cmp,
-                                                        feats_size_list_cmp, args.mask_prob)
+                                                        feats_size_list_cmp)
 
         loss = utils.sur_loss.sur_loss_cc(prediction, prediction_cmp, sur_time, censor)
         loss_cpu = loss.item()
@@ -204,7 +204,7 @@ def val_and_test(args, args_cmp, model, index_split, WSI_name_list, sur_time_lis
 
             prediction, at_, prediction_cmp, at_cpm = model(feats_list, edge_index, edge_index_diff, feats_size_list,
                                                             feats_list_cmp, edge_index_cmp, edge_index_diff_cmp,
-                                                            feats_size_list_cmp, args.mask_prob)
+                                                            feats_size_list_cmp)
 
             loss = utils.sur_loss.sur_loss_cc(prediction, prediction_cmp, sur_time, censor)
             loss_cpu = loss.item()
@@ -240,9 +240,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--patch_size", type=int, default=512, help="patch_size to use")
     parser.add_argument('--gpu_index', type=int, default=5, help='GPU ID(s)')
+    parser.add_argument("--model", type=str, default="sur_PP_MGCN")
     parser.add_argument("--dataset", type=str, default="TCGA_LUAD",
                         help="Database to use[TCGA_LUAD,TCGA_LUSC,TCGA_UCEC,TCGA_BRCA,TCGA_GBMLGG,TCGA_BLCA]")
-    parser.add_argument("--model", type=str, default="sur_PP_MGCN")
     parser.add_argument("--in_classes", type=int, default=1024, help="Feature size")
     parser.add_argument("--out_classes", type=int, default=30, help="Survival vector")
     # ------SWAP_GCN
@@ -250,7 +250,6 @@ if __name__ == '__main__':
     parser.add_argument("--number_scale", type=int, default=3, help="[1,4]")
     parser.add_argument("--using_Swin", type=int, default=1, help="[0,1]")
     parser.add_argument("--gcn_layer", type=int, default=1, help="Number of graph convs in each scale")
-    parser.add_argument("--mask_prob", type=float, default=0.6, help="")
     # -----SWAP_GCN
     parser.add_argument("--model_save_path", type=str, default="saved_model", help="path for save model")
     parser.add_argument("--task", type=str, default="survival", help="Task of classification[survival]")
@@ -293,12 +292,15 @@ if __name__ == '__main__':
           "  lr:", args.lr, "  batch_size:", args.batch_size, "  patch_size:", args.patch_size, "   number_scale:",
           args.number_scale,
           "  using_Swin:", args.using_Swin, "   gcn_layer:", args.gcn_layer, "   magnification_scale",
-          args.magnification_scale, "    out_classes:", args.out_classes, "mask_prob", args.mask_prob)
+          args.magnification_scale, "    out_classes:", args.out_classes)
     print('--------------------------------------------------------------------------------------------')
     with open('model/sur_SWAP_GCN.py', 'r') as viewFile:
         data = viewFile.read()
     print(data)
     with open('sur_main_cc.py', 'r') as viewFile:
+        data = viewFile.read()
+    print(data)
+    with open('/utils/sur_loss.py', 'r') as viewFile:
         data = viewFile.read()
     print(data)
     print('--------------------------------------------------------------------------------------------')
@@ -336,4 +338,4 @@ if __name__ == '__main__':
           "  lr:", args.lr, "  batch_size:", args.batch_size, "  patch_size:", args.patch_size, "   number_scale:",
           args.number_scale,
           "  using_Swin:", args.using_Swin, "   gcn_layer", args.gcn_layer, "   magnification_scale",
-          args.magnification_scale, " mask_prob:", args.mask_prob)
+          args.magnification_scale)

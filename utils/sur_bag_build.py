@@ -56,8 +56,6 @@ def get_bag(args,WSI_name, sur_time,censor,data_map):
                     continue
                 for start_row in range(-now_ps + now_ps//args.magnification_scale, 1, now_ps//args.magnification_scale):
                     for start_col in range(-now_ps + now_ps//args.magnification_scale, 1, now_ps//args.magnification_scale):
-                # for start_row in range(-now_ps + min_ps, 1, min_ps):
-                #     for start_col in range(-now_ps + min_ps, 1, min_ps):
                         if args.using_Swin == 0  and (start_col!=0 or start_row!=0):
                             continue
                         feats_count_now=0
@@ -72,7 +70,6 @@ def get_bag(args,WSI_name, sur_time,censor,data_map):
                                                 if  flag_sub==0 and feats_mp.__contains__(idx)  \
                                                         and TR+now_ps//args.magnification_scale <= top_row + now_ps and TC+now_ps//args.magnification_scale <= top_col +now_ps:
                                                     flag_sub+=1
-                                #print(now_ps,'-',flag_sub)
                                 if flag_sub>=1:
                                     feats_list.append([0]*1024)
                                     feats_info.append((now_ps,top_row,top_col))
