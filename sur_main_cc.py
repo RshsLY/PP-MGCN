@@ -250,7 +250,7 @@ if __name__ == '__main__':
     parser.add_argument("--number_scale", type=int, default=3, help="[1,4]")
     parser.add_argument("--using_Swin", type=int, default=1, help="[0,1]")
     parser.add_argument("--gcn_layer", type=int, default=1, help="Number of graph convs in each scale")
-    parser.add_argument("--mask_prob", type=float, default=0.6, help="")
+    parser.add_argument("--mask_prob", type=float, default=0.75, help="")
     # -----SWAP_GCN
     parser.add_argument("--model_save_path", type=str, default="saved_model", help="path for save model")
     parser.add_argument("--task", type=str, default="survival", help="Task of classification[survival]")
