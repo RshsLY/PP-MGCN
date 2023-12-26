@@ -44,11 +44,11 @@ class MIL(nn.Module):
         #self.trans = torch.nn.ModuleList()
         for i in range (self.number_scale):
             for j in range(self.gcn_layer):
-                self.gnn_convs[i].append(DeepGCNLayer(MaskAddGraphConv(in_classes, in_classes),
+                self.gnn_convs[i].append(DeepGCNLayer(MaskAddGraphConv(in_class=in_classes,out_class=in_classes),
                                          LayerNorm(in_classes),
                                          LeakyReLU(), block='plain', dropout=0.1,ckpt_grad=0))
 
-            self.gnn_convs_diff.append(DeepGCNLayer(MaskAddGraphConv(in_classes, in_classes),
+            self.gnn_convs_diff.append(DeepGCNLayer(MaskAddGraphConv(in_class=in_classes,out_class=in_classes),
                                          LayerNorm(in_classes),
                                          LeakyReLU(), block='plain', dropout=0.1,ckpt_grad=0))
             self.att1.append(nn.Sequential(nn.Linear(in_classes*(self.gcn_layer+1), in_classes*(self.gcn_layer+1)), nn.Tanh(), nn.Dropout(drop_out_ratio),))
@@ -87,6 +87,7 @@ class MIL(nn.Module):
                     bag_count_idx+=1
                 if i<=0:
                     bag_count_sigle_layer=bag_count_sigle_layer*self.magnification_scale*self.magnification_scale
+                # bag_count_sigle_layer = bag_count_sigle_layer * self.magnification_scale * self.magnification_scale
         else:
             for i in range(len(feats_size_list)):
                 pssz[i]=feats_size_list[i]
@@ -112,7 +113,7 @@ class MIL(nn.Module):
                 x = torch.split(x,[rm_x_count, pssz[i] + pssz[i + 1], all_x_count - rm_x_count - pssz[i] - pssz[i + 1]],0)
                 xx = x[1]
                 edge_index_diff[i] = edge_index_diff[i] - rm_x_count
-                xx = self.gnn_convs_diff[i](xx, edge_index_diff[i], mask_prob)
+                xx = self.gnn_convs_diff[i](xx, edge_index_diff[i],0)
                 x = torch.cat((x[0], xx, x[2]))
                 edge_index_diff[i] = edge_index_diff[i] + rm_x_count
                 rm_x_count=rm_x_count+pssz[i]
