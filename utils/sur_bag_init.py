@@ -7,7 +7,7 @@ import os
 
 def sur_get_tcga_luad_bags(args):
     sys_name_list=[]
-    luad_list = glob.glob(os.path.join('/home/data/liuyong/ms_gcn/TCGA_LUAD_Feats', '*'+str(args.patch_size)+'_0_0.csv'))
+    luad_list = glob.glob(os.path.join('TCGA_LUAD_Feats', '*'+str(args.patch_size)+'_0_0.csv'))
     for i in luad_list:
         name = i.split(os.sep)[-1].split('_')[0]
         sys_name_list.append(name)
@@ -29,7 +29,7 @@ def sur_get_tcga_luad_bags(args):
 
 def sur_get_tcga_lusc_bags(args):
     sys_name_list=[]
-    lusc_list = glob.glob(os.path.join('/home/data/liuyong/ms_gcn/TCGA_LUSC_Feats', '*'+str(args.patch_size)+'_0_0.csv'))
+    lusc_list = glob.glob(os.path.join('TCGA_LUSC_Feats', '*'+str(args.patch_size)+'_0_0.csv'))
     for i in lusc_list:
         name = i.split(os.sep)[-1].split('_')[0]
         sys_name_list.append(name)
@@ -52,7 +52,7 @@ def sur_get_tcga_lusc_bags(args):
 
 def sur_get_tcga_ucec_bags(args):
     sys_name_list=[]
-    luad_list = glob.glob(os.path.join('/home/data/liuyong/ms_gcn/TCGA_UCEC_Feats', '*'+str(args.patch_size)+'_0_0.csv'))
+    luad_list = glob.glob(os.path.join('TCGA_UCEC_Feats', '*'+str(args.patch_size)+'_0_0.csv'))
     for i in luad_list:
         name = i.split(os.sep)[-1].split('_')[0]
         sys_name_list.append(name)
@@ -74,7 +74,7 @@ def sur_get_tcga_ucec_bags(args):
 
 def sur_get_tcga_brca_idc_bags(args):
     sys_name_list=[]
-    brca_list = glob.glob(os.path.join('/home/data/liuyong/ms_gcn/TCGA_BRCA_Feats', '*'+str(args.patch_size)+'_0_0.csv'))
+    brca_list = glob.glob(os.path.join('TCGA_BRCA_Feats', '*'+str(args.patch_size)+'_0_0.csv'))
     for i in brca_list:
         name = i.split(os.sep)[-1].split('_')[0]
         sys_name_list.append(name)
@@ -97,7 +97,7 @@ def sur_get_tcga_brca_idc_bags(args):
 
 def sur_get_tcga_blca_bags(args):
     sys_name_list=[]
-    list = glob.glob(os.path.join('/home/data/liuyong/ms_gcn/TCGA_BLCA_Feats', '*'+str(args.patch_size)+'_0_0.csv'))
+    list = glob.glob(os.path.join('TCGA_BLCA_Feats', '*'+str(args.patch_size)+'_0_0.csv'))
     for i in list:
         name = i.split(os.sep)[-1].split('_')[0]
         sys_name_list.append(name)
@@ -119,7 +119,7 @@ def sur_get_tcga_blca_bags(args):
 
 def sur_get_tcga_gbmlgg_bags(args):
     sys_name_list=[]
-    list = glob.glob(os.path.join('/home/data/liuyong/ms_gcn/TCGA_GBMLGG_Feats', '*'+str(args.patch_size)+'_0_0.csv'))
+    list = glob.glob(os.path.join('TCGA_GBMLGG_Feats', '*'+str(args.patch_size)+'_0_0.csv'))
     for i in list:
         name = i.split(os.sep)[-1].split('_')[0]
         sys_name_list.append(name)
