@@ -326,13 +326,13 @@ if __name__ == '__main__':
     #-----SWAP_GCN
     parser.add_argument("--model_save_path", type=str,       default="saved_model",     help="path for save model")
     parser.add_argument("--task", type=str,                  default="survival",        help="Task of classification[survival]")
-    parser.add_argument("--divide_seed", type=int,           default=2023,              help="")
+    parser.add_argument("--divide_seed", type=int,           default=0,              help="")
     # ------------------
     parser.add_argument("--batch_size", type=int,            default=32,                help="")
     parser.add_argument("--epochs", type=int,                default=300,               help="")
     parser.add_argument("--epochs_patience", type=int,       default=64,                help="")
     parser.add_argument("--epochs_warm", type=int,           default=32,                 help="")
-    parser.add_argument("--drop_out_ratio", type=float,      default=0.2,              help="")
+    parser.add_argument("--drop_out_ratio", type=float,      default=0.25,              help="")
     parser.add_argument("--lr", type=float,                  default=0.000003,           help="Learning rate")
     parser.add_argument("--weight_decay", type=float,        default=0.000001,          help="")
     # ------------------

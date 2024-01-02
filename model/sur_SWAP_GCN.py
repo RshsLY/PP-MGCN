@@ -44,13 +44,13 @@ class MIL(nn.Module):
         #self.trans = torch.nn.ModuleList()
         for i in range (self.number_scale):
             for j in range(self.gcn_layer):
-                self.gnn_convs[i].append(DeepGCNLayer(MaskAddGraphConv(in_class=in_classes,out_class=in_classes),
+                self.gnn_convs[i].append(DeepGCNLayer(GINConv(nn.Sequential(nn.Linear(in_classes,in_classes),nn.LeakyReLU(),nn.Dropout(0.1))),
                                          LayerNorm(in_classes),
-                                         LeakyReLU(), block='plain', dropout=0.1,ckpt_grad=0))
+                                         LeakyReLU(), block='plain', dropout=0,ckpt_grad=0))
 
-            self.gnn_convs_diff.append(DeepGCNLayer(MaskAddGraphConv(in_class=in_classes,out_class=in_classes),
+            self.gnn_convs_diff.append(DeepGCNLayer(GINConv(nn.Sequential(nn.Linear(in_classes,in_classes),nn.LeakyReLU(),nn.Dropout(0.1))),
                                          LayerNorm(in_classes),
-                                         LeakyReLU(), block='plain', dropout=0.1,ckpt_grad=0))
+                                         LeakyReLU(), block='plain', dropout=0,ckpt_grad=0))
             self.att1.append(nn.Sequential(nn.Linear(in_classes*(self.gcn_layer+1), in_classes*(self.gcn_layer+1)), nn.Tanh(), nn.Dropout(drop_out_ratio),))
             self.att2.append(nn.Sequential( nn.Linear(in_classes*(self.gcn_layer+1), in_classes*(self.gcn_layer+1)),nn.Sigmoid(),nn.Dropout(drop_out_ratio),))
             self.att3.append(nn.Linear(in_classes*(self.gcn_layer+1) , 1))
