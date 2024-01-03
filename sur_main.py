@@ -326,7 +326,7 @@ if __name__ == '__main__':
     #-----SWAP_GCN
     parser.add_argument("--model_save_path", type=str,       default="saved_model",     help="path for save model")
     parser.add_argument("--task", type=str,                  default="survival",        help="Task of classification[survival]")
-    parser.add_argument("--divide_seed", type=int,           default=0,              help="")
+    parser.add_argument("--divide_seed", type=int,           default=2023,              help="")
     # ------------------
     parser.add_argument("--batch_size", type=int,            default=32,                help="")
     parser.add_argument("--epochs", type=int,                default=300,               help="")
