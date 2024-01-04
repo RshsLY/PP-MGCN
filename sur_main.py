@@ -333,7 +333,7 @@ if __name__ == '__main__':
     parser.add_argument("--epochs_patience", type=int,       default=64,                help="")
     parser.add_argument("--epochs_warm", type=int,           default=32,                 help="")
     parser.add_argument("--drop_out_ratio", type=float,      default=0.25,              help="")
-    parser.add_argument("--lr", type=float,                  default=0.000003,           help="Learning rate")
+    parser.add_argument("--lr", type=float,                  default=0.00001,           help="Learning rate")
     parser.add_argument("--weight_decay", type=float,        default=0.000001,          help="")
     # ------------------
     parser.add_argument("--number_kfold", type=int,          default=5,                 help="Number of KFold")

@@ -13,12 +13,12 @@ import cv2
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--model_path", type=str,
-                        default="saved_model/TCGA_BLCA_survival_sur_SWAP_GCN_1_2023-12-25-11-58-23.122157.pth",
+                        default="saved_model/TCGA_BLCA_survival_sur_SWAP_GCN_2_2024-01-04-00-45-06.748696.pth",
                         help="path for saved model")
 parser.add_argument("--feats_path",type=str,default="TCGA_BLCA_Feats/TCGA-CU-A5W6-01Z-00-DX1_0_0.csv")
 parser.add_argument("--tif_path",type=str,default="/home/data/liuyong/TCGA_BLCA/TCGA-CU-A5W6-01Z-00-DX1.svs")
 parser.add_argument("--WSI_name",type=str,default="TCGA-CU-A5W6-01Z-00-DX1")
-parser.add_argument("--layer_select", type=int,default=1)
+parser.add_argument("--layer_select", type=int,default=0)
 parser.add_argument("--down", type=int,default=128)
 
 
@@ -31,12 +31,12 @@ parser.add_argument("--out_classes", type=int,           default=30,            
 #------MS_GCN
 parser.add_argument("--number_scale", type=int,          default=3,                 help="[1,4]")
 parser.add_argument("--using_Swin",type=int,             default=1,                 help="[0,1]")
-parser.add_argument("--magnification_scale", type=int, default=3, help="")
+parser.add_argument("--magnification_scale", type=int, default=2, help="")
 parser.add_argument("--gcn_layer", type=int,             default=1)
 #-----MS_GCN
 parser.add_argument("--model_save_path", type=str,       default="saved_model",     help="path for save model")
 parser.add_argument("--task", type=str,                  default="survival",        help="Task of classification[survival]")
-parser.add_argument("--divide_seed", type=int,           default=0,              help="Data division seed")
+parser.add_argument("--divide_seed", type=int,           default=2023,              help="Data division seed")
 # ------------------
 parser.add_argument("--batch_size", type=int,            default=32,                help="Data volume of model training once")
 parser.add_argument("--epochs", type=int,                default=200,               help="Cycle times of model training")
