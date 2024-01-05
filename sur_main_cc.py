@@ -150,7 +150,7 @@ def train(args, args_cmp, model, index_split, WSI_name_list, sur_time_list, cens
                                                         feats_list_cmp, edge_index_cmp, edge_index_diff_cmp,
                                                         feats_size_list_cmp, args.mask_prob)
 
-        loss = utils.sur_loss.sur_loss_cc(prediction, prediction_cmp, sur_time, censor)
+        loss = utils.sur_loss.sur_loss_cc(prediction, prediction_cmp, sur_time, censor,args.ori_p)
         loss_cpu = loss.item()
         total_loss += (loss_cpu)
         loss.backward()
@@ -206,7 +206,7 @@ def val_and_test(args, args_cmp, model, index_split, WSI_name_list, sur_time_lis
                                                             feats_list_cmp, edge_index_cmp, edge_index_diff_cmp,
                                                             feats_size_list_cmp, args.mask_prob)
 
-            loss = utils.sur_loss.sur_loss_cc(prediction, prediction_cmp, sur_time, censor)
+            loss = utils.sur_loss.sur_loss_cc(prediction, prediction_cmp, sur_time, censor,args.ori_p)
             loss_cpu = loss.item()
             total_loss += (loss_cpu)
 
@@ -251,6 +251,7 @@ if __name__ == '__main__':
     parser.add_argument("--using_Swin", type=int, default=1, help="[0,1]")
     parser.add_argument("--gcn_layer", type=int, default=1, help="Number of graph convs in each scale")
     parser.add_argument("--mask_prob", type=float, default=0, help="")
+    parser.add_argument("--ori_p", type=float, default=0.5, help="")
     # -----SWAP_GCN
     parser.add_argument("--model_save_path", type=str, default="saved_model", help="path for save model")
     parser.add_argument("--task", type=str, default="survival", help="Task of classification[survival]")
@@ -260,7 +261,7 @@ if __name__ == '__main__':
     parser.add_argument("--epochs", type=int, default=300, help="")
     parser.add_argument("--epochs_patience", type=int, default=64, help="")
     parser.add_argument("--epochs_warm", type=int, default=32, help="")
-    parser.add_argument("--drop_out_ratio", type=float, default=0.25, help="")
+    parser.add_argument("--drop_out_ratio", type=float, default=0.1, help="")
     parser.add_argument("--lr", type=float, default=0.00001, help="Learning rate")
     parser.add_argument("--weight_decay", type=float, default=0.000001, help="")
     # ------------------
@@ -293,7 +294,7 @@ if __name__ == '__main__':
           "  lr:", args.lr, "  batch_size:", args.batch_size, "  patch_size:", args.patch_size, "   number_scale:",
           args.number_scale,
           "  using_Swin:", args.using_Swin, "   gcn_layer:", args.gcn_layer, "   magnification_scale",
-          args.magnification_scale, "    out_classes:", args.out_classes, "mask_prob", args.mask_prob)
+          args.magnification_scale, "    out_classes:", args.out_classes, "mask_prob", args.mask_prob," ori_p:", args.ori_p)
     print('--------------------------------------------------------------------------------------------')
     with open('model/sur_SWAP_GCN.py', 'r') as viewFile:
         data = viewFile.read()
@@ -336,4 +337,4 @@ if __name__ == '__main__':
           "  lr:", args.lr, "  batch_size:", args.batch_size, "  patch_size:", args.patch_size, "   number_scale:",
           args.number_scale,
           "  using_Swin:", args.using_Swin, "   gcn_layer", args.gcn_layer, "   magnification_scale",
-          args.magnification_scale, " mask_prob:", args.mask_prob)
+          args.magnification_scale, " mask_prob:", args.mask_prob," ori_p:", args.ori_p)

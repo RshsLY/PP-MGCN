@@ -46,11 +46,11 @@ class MIL(nn.Module):
             for j in range(self.gcn_layer):
                 self.gnn_convs[i].append(DeepGCNLayer(MaskAddGraphConv(in_classes,in_classes),
                                          LayerNorm(in_classes),
-                                         LeakyReLU(), block='plain', dropout=0,ckpt_grad=0))
+                                         LeakyReLU(), block='plain', dropout=drop_out_ratio,ckpt_grad=0))
 
             self.gnn_convs_diff.append(DeepGCNLayer(MaskAddGraphConv(in_classes,in_classes),
                                          LayerNorm(in_classes),
-                                         LeakyReLU(), block='plain', dropout=0,ckpt_grad=0))
+                                         LeakyReLU(), block='plain', dropout=drop_out_ratio,ckpt_grad=0))
             self.att1.append(nn.Sequential(nn.Linear(in_classes*(self.gcn_layer+1), in_classes*(self.gcn_layer+1)), nn.Tanh(), nn.Dropout(drop_out_ratio),))
             self.att2.append(nn.Sequential( nn.Linear(in_classes*(self.gcn_layer+1), in_classes*(self.gcn_layer+1)),nn.Sigmoid(),nn.Dropout(drop_out_ratio),))
             self.att3.append(nn.Linear(in_classes*(self.gcn_layer+1) , 1))

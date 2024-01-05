@@ -14,7 +14,7 @@ def setup_seed(seed):
 class Logger(object):
 
     def __init__(self, stream=sys.stdout,model_name=""):
-        output_dir = "saved_log0105"
+        output_dir = "saved_log0106"
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         log_name = '{}.log'.format(time.strftime('%Y-%m-%d-%H-%M-%S'))
