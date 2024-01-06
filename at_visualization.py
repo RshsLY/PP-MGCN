@@ -1,29 +1,19 @@
-import PIL.Image
-import numpy as np
-import openslide
 
-import model.sur_SWAP_GCN as mil
 import  argparse
-import  datetime
-import os
-import torch
-import utils.sur_bag_build
-import cv2
-
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--model_path", type=str,
-                        default="saved_model/TCGA_BLCA_survival_sur_SWAP_GCN_2_2024-01-04-00-45-06.748696.pth",
+                        default="saved_model/TCGA_BLCA_survival_sur_SWAP_GCN_1_2024-01-06-15-18-37.306628.pth",
                         help="path for saved model")
 parser.add_argument("--feats_path",type=str,default="TCGA_BLCA_Feats/TCGA-CU-A5W6-01Z-00-DX1_0_0.csv")
 parser.add_argument("--tif_path",type=str,default="/home/data/liuyong/TCGA_BLCA/TCGA-CU-A5W6-01Z-00-DX1.svs")
 parser.add_argument("--WSI_name",type=str,default="TCGA-CU-A5W6-01Z-00-DX1")
 parser.add_argument("--layer_select", type=int,default=0)
-parser.add_argument("--down", type=int,default=128)
+parser.add_argument("--down", type=int,default=256)
 
 
 parser.add_argument("--patch_size", type=int,            default=512,               help="patch_size to use")
-parser.add_argument('--gpu_index', type=int,             default=0,                 help='GPU ID(s)')
+parser.add_argument('--gpu_index', type=int,             default=6,                 help='GPU ID(s)')
 parser.add_argument("--dataset", type=str,               default="TCGA_BLCA",       help="Database to use[TCGA_LUAD,TCGA_LUSC,TCGA_UCEC,TCGA_BLCA,TCGA_BLCA,TCGA_BLCA]")
 parser.add_argument("--model", type=str,                 default="sur_SWAP_GCN",      help="Model to use[sur_MIL_mean,sur_MIL_max,sur_ABMIL,sur_Patch_GCN,sur_DSMIL,sur_TransMIL,sur_H2_MIL,sur_MS_GCN]")
 parser.add_argument("--in_classes", type=int,            default=1024,              help="Feature size of each patch")
@@ -50,10 +40,21 @@ parser.add_argument("--number_kfold", type=int,          default=5,             
 parser.add_argument("--number_run", type=int,            default=1,                 help="Number of runs")
 parser.add_argument("--time_stamp",type=str,             default="-1")
 args, _ = parser.parse_known_args()
+import  datetime
+import os
 args.time_stamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S.%f')
 gpu_ids = tuple((args.gpu_index,))
 os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(str(x) for x in gpu_ids)
+import PIL.Image
+import numpy as np
+import openslide
 
+import model.sur_SWAP_GCN as mil
+
+
+import torch
+import utils.sur_bag_build
+import cv2
 
 tif=openslide.OpenSlide(args.tif_path)
 print(tif.level_dimensions[0][0],tif.level_dimensions[0][1])

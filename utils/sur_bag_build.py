@@ -91,10 +91,10 @@ def get_bag(args,WSI_name, sur_time,censor,data_map):
                 top_col = i[4]
 
                 #self loop
-                # for sz_idx in range(patch_size_list.__len__()):
-                #     if patch_size_list[sz_idx] == now_ps:
-                #         edge_index[sz_idx][0].append(feats_mp[i])
-                #         edge_index[sz_idx][1].append(feats_mp[i])
+                for sz_idx in range(patch_size_list.__len__()):
+                    if patch_size_list[sz_idx] == now_ps:
+                        edge_index[sz_idx][0].append(feats_mp[i])
+                        edge_index[sz_idx][1].append(feats_mp[i])
 
                 poe_ne_list = [(top_row + now_ps, top_col), (top_row - now_ps, top_col),
                                (top_row, top_col + now_ps), (top_row, top_col - now_ps),
