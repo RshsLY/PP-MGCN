@@ -50,8 +50,8 @@ def diff_CL(h,hc,sur_time,censor):
         else :
             return s0_diff+s1_diff
 
-def sur_loss_cc(h,h1,sur_time,censor):
-    return sur_loss(h,sur_time,censor)+diff_CL(h,h1,sur_time,censor)
+# def sur_loss_cc(h,h1,sur_time,censor):
+#     return sur_loss(h,sur_time,censor)+diff_CL(h,h1,sur_time,censor)
 
 def sur_loss_cc(h,h1,sur_time,censor,p):
     return p*sur_loss(h,sur_time,censor)+(1.0-p)*diff_CL(h,h1,sur_time,censor)

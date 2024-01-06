@@ -321,7 +321,7 @@ if __name__ == '__main__':
     parser.add_argument("--mask_prob", type=float,           default=0,               help="")
     parser.add_argument("--magnification_scale", type=int,   default=2,                 help="")
     parser.add_argument("--number_scale", type=int,          default=3,                 help="[1,4]")
-    parser.add_argument("--using_Swin",type=int,             default=0,                 help="[0,1]")
+    parser.add_argument("--using_Swin",type=int,             default=1,                 help="[0,1]")
     parser.add_argument("--gcn_layer", type=int,             default=1,                 help="Number of graph convs in each scale")
     #-----SWAP_GCN
     parser.add_argument("--model_save_path", type=str,       default="saved_model",     help="path for save model")
@@ -331,8 +331,8 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", type=int,            default=32,                help="")
     parser.add_argument("--epochs", type=int,                default=300,               help="")
     parser.add_argument("--epochs_patience", type=int,       default=64,                help="")
-    parser.add_argument("--epochs_warm", type=int,           default=32,                 help="")
-    parser.add_argument("--drop_out_ratio", type=float,      default=0.1,              help="")
+    parser.add_argument("--epochs_warm", type=int,           default=16,                 help="")
+    parser.add_argument("--drop_out_ratio", type=float,      default=0.15,              help="")
     parser.add_argument("--lr", type=float,                  default=0.00001,           help="Learning rate")
     parser.add_argument("--weight_decay", type=float,        default=0.000001,          help="")
     # ------------------
