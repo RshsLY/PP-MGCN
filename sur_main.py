@@ -198,7 +198,7 @@ def train(args, model, index_split, WSI_name_list,sur_time_list,censor_list, opt
             Y_list.append(Y)
             ass_sur_time_list.append(sur_time)
             ass_censor_list.append(censor)
-        if i % (len(index_split) // 20) == 0:  # out 10 case
+        if i % (len(index_split) // 10) == 0:  # out 10 case
             print("    run/fold/epoch：{:d}/{:d}/{:d}  {:d}/{:d}   now_loss：{:.4f}   censor：{:.0f}   sur_time：{:.0f}   Y：{:.4f}    predict：{:.4f}  ".format(run_num,
                     fold_num, epoch_num, i + 1, len(index_split), loss_cpu, censor_list[idx],sur_time_list[idx], Y.item(),prediction[0][int(sur_time_list[idx])].item())
                   )
@@ -312,7 +312,7 @@ def val_and_test(args, model, index_split, WSI_name_list,sur_time_list,censor_li
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--patch_size", type=int,            default=512,               help="patch_size to use")
-    parser.add_argument('--gpu_index', type=int,             default=0,                 help='GPU ID(s)')
+    parser.add_argument('--gpu_index', type=int,             default=3,                 help='GPU ID(s)')
     parser.add_argument("--dataset", type=str,               default="TCGA_BLCA",       help="Database to use[TCGA_LUAD,TCGA_LUSC,TCGA_UCEC,TCGA_BRCA,TCGA_GBMLGG,TCGA_BLCA]")
     parser.add_argument("--model", type=str,                 default="sur_SWAP_GCN",    help="Model to use[sur_MIL_mean,sur_MIL_max,sur_ABMIL,sur_Patch_GCN,sur_DSMIL,sur_TransMIL,sur_H2_MIL,sur_HIGT,sur_SWAP_GCN]")
     parser.add_argument("--in_classes", type=int,            default=1024,              help="Feature size")
@@ -331,8 +331,8 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", type=int,            default=32,                help="")
     parser.add_argument("--epochs", type=int,                default=300,               help="")
     parser.add_argument("--epochs_patience", type=int,       default=64,                help="")
-    parser.add_argument("--epochs_warm", type=int,           default=16,                 help="")
-    parser.add_argument("--drop_out_ratio", type=float,      default=0.15,              help="")
+    parser.add_argument("--epochs_warm", type=int,           default=8,                 help="")
+    parser.add_argument("--drop_out_ratio", type=float,      default=0.25,              help="")
     parser.add_argument("--lr", type=float,                  default=0.00001,           help="Learning rate")
     parser.add_argument("--weight_decay", type=float,        default=0.000001,          help="")
     # ------------------

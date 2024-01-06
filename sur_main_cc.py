@@ -163,7 +163,7 @@ def train(args, args_cmp, model, index_split, WSI_name_list, sur_time_list, cens
         ass_censor_list.append(censor)
         ass_sur_time_list_cmp.append(sur_time_cmp)
         ass_censor_list_cmp.append(censor_cmp)
-        if i % (len(index_split) // 20) == 0:  # out 20 case
+        if i % (len(index_split) // 10) == 0:  # out 20 case
             print(
                 "    run/fold/epoch：{:d}/{:d}/{:d}  {:d}/{:d}   now_loss：{:.4f}   censor：{:.0f}   sur_time：{:.0f}   Y：{:.4f}    predict：{:.4f}  ".format(
                     run_num,
@@ -218,7 +218,7 @@ def val_and_test(args, args_cmp, model, index_split, WSI_name_list, sur_time_lis
             ass_censor_list.append(censor)
             ass_sur_time_list_cmp.append(sur_time_cmp)
             ass_censor_list_cmp.append(censor_cmp)
-            if i % (len(index_split) // 20) == 0:  # out 20 case
+            if i % (len(index_split) // 10) == 0:  # out 20 case
                 print(
                     "    run/fold/epoch：{:d}/{:d}/{:d}  {:d}/{:d}   now_loss：{:.4f}   censor：{:.0f}   sur_time：{:.0f}   Y：{:.4f}    predict：{:.4f}  ".format(
                         run_num,
@@ -260,8 +260,8 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", type=int,            default=32,                help="")
     parser.add_argument("--epochs", type=int,                default=300,               help="")
     parser.add_argument("--epochs_patience", type=int,       default=64,                help="")
-    parser.add_argument("--epochs_warm", type=int,           default=16,                 help="")
-    parser.add_argument("--drop_out_ratio", type=float,      default=0.15,              help="")
+    parser.add_argument("--epochs_warm", type=int,           default=8,                 help="")
+    parser.add_argument("--drop_out_ratio", type=float,      default=0.25,              help="")
     parser.add_argument("--lr", type=float,                  default=0.00001,           help="Learning rate")
     parser.add_argument("--weight_decay", type=float,        default=0.000001,          help="")
     # ------------------
